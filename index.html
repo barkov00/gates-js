@@ -1,0 +1,69 @@
+﻿<!doctype html>
+<html>
+	<head>
+		<title></title>
+        <meta charset='utf-8' />
+	</head>
+	<body>
+	<ul>
+	
+	Где какие тайлы:</br>
+	<li>
+	Белый (код 0) - пустота
+	</li>
+	<li>
+	Серый (код 1) - начальная позиция робота
+	</li>
+	<li>
+	Зеленый (код 2) - выход
+	</li>
+	<li>
+	Коричневый (код 3) - стена
+	</li>
+	
+	</ul>
+	<table width="300" border="1" cellpadding="5" style="text-align: center">
+	<tr>
+	<th width="75">
+	<canvas height='480' width='480' id='world'>Обновите браузер</canvas>
+	</th>
+	<th>
+	<canvas height='480' width='640' id='editor'>Обновите браузер</canvas>
+	<script type="text/javascript" src="utils.js"></script>
+	<script type="text/javascript" src="world.js"></script>
+	<script type="text/javascript">
+		//WTF??
+		var vendors = ['webkit', 'moz'];
+		for (var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
+			window.requestAnimationFrame = window[vendors[x] + 'RequestAnimationFrame'];
+			window.cancelAnimationFrame = window[vendors[x] + 'CancelAnimationFrame'] || window[vendors[x] + 'CancelRequestAnimationFrame'];
+		}
+	
+		var editor_canvas = document.getElementById("editor");
+		var world_canvas = document.getElementById("world");
+		var w_cx = null, e_cx = null;
+		var currentTime = 0, lastTime = (new Date()).getTime();
+		
+		init_world(world_canvas.width, world_canvas.height);
+
+		function mainLoop(){
+			currentTime = (new Date()).getTime();
+			var delta = (currentTime - lastTime) / 1000;
+			lastTime = currentTime;
+			
+			world_update(delta); 
+			world_draw(w_cx);
+			requestAnimationFrame(mainLoop);
+		}
+		
+		if (typeof (world_canvas.getContext) !== undefined) {
+			w_cx = world_canvas.getContext('2d');
+			mainLoop();
+		}
+	</script>
+	</th>
+	</tr>
+	</table>
+
+	</body>
+</html>
