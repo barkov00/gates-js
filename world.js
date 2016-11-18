@@ -31,8 +31,8 @@ var matrix_size = 10;
 var level = level1;
 var cell_colors = ["white", "gray", "green", "brown"];
 var cell_size;
-var speed_x = 200;
-var speed_y = 200;
+var speed_x = 80;
+var speed_y = 80;
 var dx = 0;
 var dy = 0;
 var level_rects = null;
@@ -161,6 +161,8 @@ function world_update(dt)	{
 	update_player_bb();
 	
 	collisions(dx, 0);
+	
+	player_bb.intersects = 0;
 
 	player_pos.y += dy * speed_y * dt;
 	player_pos.y = Math.floor(player_pos.y);
@@ -177,7 +179,7 @@ function world_update(dt)	{
 	//right
 	sens[1].left = player_pos.x + robot_size - sens_offs * 0;
 	sens[1].right = player_pos.x + robot_size + sensor_width;//sens_offs;
-	sens[1].top = player_pos.y + 1;
+	sens[1].top = player_pos.y + 1
 	sens[1].bottom = player_pos.y + robot_size - 1;
 			
 	//top

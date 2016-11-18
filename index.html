@@ -22,15 +22,19 @@
 	</li>
 	
 	</ul>
-	<table width="300" border="1" cellpadding="5" style="text-align: center">
+	
+	<!-- images -->
+	
+	<table width="300" border="1" cellpadding="5" style="text-align: center" align="center">
 	<tr>
 	<th width="75">
 	<canvas height='480' width='480' id='world'>Обновите браузер</canvas>
 	</th>
 	<th>
-	<canvas height='480' width='640' id='editor'>Обновите браузер</canvas>
+	<canvas height='720' width='800' id='editor'>Обновите браузер</canvas>
 	<script type="text/javascript" src="utils.js"></script>
 	<script type="text/javascript" src="world.js"></script>
+	<script type="text/javascript" src="editor.js"></script>
 	<script type="text/javascript">
 		//WTF??
 		var vendors = ['webkit', 'moz'];
@@ -44,23 +48,42 @@
 		var w_cx = null, e_cx = null;
 		var currentTime = 0, lastTime = (new Date()).getTime();
 		
+		
 		init_world(world_canvas.width, world_canvas.height);
+		init_editor(editor_canvas);
 
 		function mainLoop(){
 			currentTime = (new Date()).getTime();
 			var delta = (currentTime - lastTime) / 1000;
 			lastTime = currentTime;
 			
+			editor_update(delta); 
 			world_update(delta); 
+			editor_draw(e_cx);
 			world_draw(w_cx);
+		
 			requestAnimationFrame(mainLoop);
 		}
 		
-		if (typeof (world_canvas.getContext) !== undefined) {
-			w_cx = world_canvas.getContext('2d');
-			mainLoop();
+		if ( (typeof (world_canvas.getContext) !== undefined) && (typeof (editor_canvas.getContext) !== undefined)) {
+				w_cx = world_canvas.getContext('2d');
+				e_cx = editor_canvas.getContext('2d');
+				mainLoop();
 		}
 	</script>
+	
+	
+	<div style="display:none;">
+	<!--<img id="nand" src="images/nand.png" onload="graphics_loaded()">-->
+	<!--<img id="and" src="images/and.png" onload="graphics_loaded()">-->
+	<!--<img id="not" src="images/not.png" onload="graphics_loaded()">-->
+	<!--<img id="nor" src="images/nor.png" onload="graphics_loaded()">-->
+	<!--<img id="xor" src="images/xor.png" onload="graphics_loaded()">-->
+	<!--<img id="or" src="images/or.png" onload="graphics_loaded()">-->
+	</div>
+	
+	
+	
 	</th>
 	</tr>
 	</table>

@@ -33,3 +33,20 @@ function rectCenter(rect){
 		y: (rect.top + rect.bottom) / 2
 	};
 }
+
+function createRect(){
+	return {
+		left: 0,
+		right: 0,
+		top: 0,
+		bottom: 0,
+		width: 0,
+		height: 0
+	}
+}
+
+function rectContains(r, x, y){
+	if(x > r.left && x < r.right && y > r.top && y < r.bottom) 
+		return true;
+	return false;
+}
