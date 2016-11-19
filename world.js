@@ -31,8 +31,8 @@ var matrix_size = 10;
 var level = level1;
 var cell_colors = ["white", "gray", "green", "brown"];
 var cell_size;
-var speed_x = 80;
-var speed_y = 80;
+var speed_x = 120;
+var speed_y = 120;
 var dx = 0;
 var dy = 0;
 var level_rects = null;
@@ -98,7 +98,7 @@ function init_world(width, height){
 	cell_size = width / matrix_size;
 	sens_offs = cell_size / 9;
 	robot_size = cell_size / 1.2;
-	sensor_width = robot_size / 10;
+	sensor_width = robot_size / 16;
 	//ищем старовую позицию
 	for(var i = 0; i < matrix_size; i++){
 		for(var j = 0; j < matrix_size; j++){

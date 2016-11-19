@@ -10,6 +10,14 @@ var mouse = {
 };
 var toolbar_btns = [];
 var objects = [];
+var obj_ids = 0;
+var pin_bb_size = 0;
+var original_width = 200;
+var original_height = 100;
+var elem_height = 50;
+var elem_width = 100;
+var hk = elem_height / original_height;
+var wk = elem_width / original_width;
 
 function load_image(name, src){
 	var img = new Image();
@@ -38,20 +46,21 @@ function init_editor(_canvas){
 		mouse.pressed = false;
       }, false);
 	  
-	load_image("and", "images/and.jpg");
+	load_image("and", "images/and.png");
 	load_image("or", "images/or.png");
 	load_image("not", "images/not.png");
 	load_image("nand", "images/nand.png");
 	load_image("nor", "images/nor.png");
 	load_image("xor", "images/xor.png");
 	
-	toolbar_btns.push(createObject("and", 0, 0, 100, 50));
-	toolbar_btns.push(createObject("or", 0, 0, 100, 50));
-	toolbar_btns.push(createObject("not", 0, 0, 100, 50));
-	toolbar_btns.push(createObject("nand", 0, 0, 100, 50));
-	toolbar_btns.push(createObject("nor", 0, 0, 100, 50));
-	toolbar_btns.push(createObject("xor", 0, 0, 100, 50));
+	toolbar_btns.push(new GameObject("and", 0, 0, 100, 50));
+	toolbar_btns.push(new GameObject("or", 0, 0, 100, 50));
+	toolbar_btns.push(new GameObject("not", 0, 0, 100, 50));
+	toolbar_btns.push(new GameObject("nand", 0, 0, 100, 50));
+	toolbar_btns.push(new GameObject("nor", 0, 0, 100, 50));
+	toolbar_btns.push(new GameObject("xor", 0, 0, 100, 50));
 	
+	pin_bb_size = elem_height / 5;
 	var btn_height = toolbar_height;
 	var btn_width = toolbar_height * 2;
 	for(var i = 0; i < toolbar_btns.length; i++){
@@ -62,21 +71,57 @@ function init_editor(_canvas){
 	}
 }
 
-function createObject(name, x, y, width, height){
-	var obj = {
-		img: name,
-		rect: createRect(),
-		bb: createRect(),
-		hover: false,
-		drag: false
+function PinBB(rect, out){
+	this.rect = rect;
+	this.out = out;
+	this.hover = false;
+}
+
+function LogicObject(name, x, y, width, height){
+	this.id = obj_ids++;
+	this.name = name;
+	this.rect = createRect();
+	this.pin_bb = [];
+	this.func = null;
+	this.drag = false;
+	this.hover = false;
+	
+	this.rect.height = height;
+	this.rect.width = width + pin_bb_size;
+	
+	this.rect.left = x;
+	this.rect.top = y;
+	this.rect.bottom = y + this.rect.height;
+	this.rect.right = x + this.rect.width;
+
+	
+	if(name == "and"){
+		this.pin_bb.push(new PinBB(createRect(0, 28 * hk - pin_bb_size/2, pin_bb_size, 28* hk + pin_bb_size/2), false));
+		this.pin_bb.push(new PinBB(createRect(0, 70 * hk - pin_bb_size/2, pin_bb_size, 70* hk + pin_bb_size/2), false));
+		this.pin_bb.push(new PinBB(createRect(this.rect.width - pin_bb_size, 48 * hk - pin_bb_size/2, this.rect.width, 48* hk + pin_bb_size/2), false));
 	}
-	obj.rect.left = x;
-	obj.rect.top = y;
-	obj.rect.bottom = y + height;
-	obj.rect.right = x + width;
-	obj.rect.height = height;
-	obj.rect.width = width;
-	return obj;
+	if(name == "nand"){
+		
+	}
+	if(name == "or"){
+		
+	}
+	if(name == "xor"){
+		
+	}
+	if(name == "not"){
+		
+	}
+	if(name == "nor"){
+	
+	}
+};
+
+function GameObject(_name, x, y, width, height){
+	this.name = _name;
+	this.rect = createRect(x, y, x + width, y + height);
+	this.hover = false;
+	this.drag = false;
 }
 
 function mouse_clicked(){
@@ -94,7 +139,7 @@ function _translate(x, y, xx, yy){
 	return {x: x + xx, y: y + yy};
 }
 
-var ST_IDLE = 0, ST_DRAG = 1;
+var ST_IDLE = 0, ST_DRAG = 1, ST_SEL_PIN = 2;
 var editor_state = ST_IDLE;
 
 function editor_update(dt){
@@ -104,7 +149,7 @@ function editor_update(dt){
 		var hover = rectContains(toolbar_btns[i].rect, mouse.x, mouse.y);
 		toolbar_btns[i].hover = hover;
 		if(hover && clicked && !(editor_state == ST_DRAG)){
-			var obj = createObject(toolbar_btns[i].img, 300, 300, 100, 50);
+			var obj = new LogicObject(toolbar_btns[i].name, 300, 300, elem_width, elem_height);
 			obj.drag = true;
 			editor_state = ST_DRAG;
 			objects.push(obj);
@@ -115,7 +160,7 @@ function editor_update(dt){
 	var mousepos = _translate(mouse.x, mouse.y, 0, -toolbar_height);
 	for(var i = 0; i < objects.length; i++){
 		var obj = objects[i];
-		if(obj.drag && clicked && (editor_state == ST_DRAG) && mouse.y > toolbar_height * 1.5){ //щаканчиваем перетаскивание, оставляем объект там где юзер кликнул
+		if(obj.drag && clicked && (editor_state == ST_DRAG) && mouse.y > toolbar_height * 1.5){ //заканчиваем перетаскивание, оставляем объект там где юзер кликнул
 			objects[i].drag = false;
 			editor_state = ST_IDLE;
 			continue;
@@ -126,12 +171,30 @@ function editor_update(dt){
 			obj.rect.top = mousepos.y - obj.rect.height/2;
 			obj.rect.bottom = obj.rect.top + obj.rect.height;
 			obj.rect.right = obj.rect.left + obj.rect.width;
-		} else {	//начало перетаскивания объекта
+		} else {	
+			//коллизии курсора с пинами
+		    var pin_selected = false;
+			for(var j = 0; j < obj.pin_bb.length; j++){
+				var bb = obj.pin_bb[j].rect;
+				var rect = {
+					left: obj.rect.left + bb.left,
+					right: obj.rect.left + bb.right,
+					top: obj.rect.top + bb.top,
+					bottom: obj.rect.top + bb.bottom
+				}
+				var hover = rectContains(rect, mousepos.x, mousepos.y);
+				if(hover) {
+					pin_selected = true;
+				}
+				objects[i].pin_bb[j].hover = hover;
+			}
+			
 			var hover = rectContains(obj.rect, mousepos.x, mousepos.y);
 			objects[i].hover = hover;
-			if(hover && clicked && !(editor_state == ST_DRAG)){
+			if(!pin_selected && hover && clicked && (editor_state == ST_IDLE)){
 				objects[i].drag = true;
-				editor_state = ST_DRAG;
+				editor_state = ST_DRAG; //начало перетаскивания объекта
+				continue;
 			}
 		}
 	} 
@@ -155,7 +218,7 @@ function editor_draw(cx){
 function draw_toolbar(cx){
 	for(var i = 0; i < toolbar_btns.length; i++){
 		var btn = toolbar_btns[i];
-		cx.drawImage(graphics[btn.img], btn.rect.left, 0, btn.rect.right-btn.rect.left, btn.rect.bottom-btn.rect.top);
+		cx.drawImage(graphics[btn.name], btn.rect.left, 0, btn.rect.right-btn.rect.left, btn.rect.bottom-btn.rect.top);
 		if(btn.hover){
 			cx.beginPath();
 			cx.strokeStyle = mouse.pressed == false ? "green" : "lightgreen";
@@ -169,7 +232,8 @@ function draw_toolbar(cx){
 function draw_objects(cx){
 	for(var i = 0; i < objects.length; i++){
 		var obj = objects[i];
-		cx.drawImage(graphics[obj.img], obj.rect.left, obj.rect.top, obj.rect.right-obj.rect.left, obj.rect.bottom-obj.rect.top);
+		cx.drawImage(graphics[obj.name], obj.rect.left, obj.rect.top, obj.rect.right-obj.rect.left, obj.rect.bottom-obj.rect.top);
+		
 		if(obj.hover){
 			cx.beginPath();
 			cx.strokeStyle = mouse.pressed == false ? "green" : "lightgreen";
@@ -177,5 +241,21 @@ function draw_objects(cx){
 			cx.stroke();
 			cx.closePath();
 		}
+		
+		for(var j = 0; j < obj.pin_bb.length; j++){
+			var bb = obj.pin_bb[j].rect;
+			var rect = {
+						left: obj.rect.left + bb.left,
+						right: obj.rect.left + bb.right,
+						top: obj.rect.top + bb.top,
+						bottom: obj.rect.top + bb.bottom
+					}
+			cx.beginPath();
+			cx.strokeStyle = obj.pin_bb[j].hover ? "red" : "cyan";
+			cx.rect(rect.left, rect.top, rect.right-rect.left, rect.bottom-rect.top);
+			//cx.rect(obj.rect.left + bb.left, obj.rect.top + bb.top, bb.width, bb.height);
+			cx.stroke();
+			cx.closePath();
+		} 
 	}
 }

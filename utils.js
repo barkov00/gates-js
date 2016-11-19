@@ -45,6 +45,17 @@ function createRect(){
 	}
 }
 
+function createRect(lft, tp, rgt, btm){
+	return {
+		left: lft,
+		right: rgt,
+		top: tp,
+		bottom: btm,
+		width: rgt-lft,
+		height: btm-tp
+	}
+}
+
 function rectContains(r, x, y){
 	if(x > r.left && x < r.right && y > r.top && y < r.bottom) 
 		return true;
