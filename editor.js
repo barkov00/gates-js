@@ -75,6 +75,7 @@ function PinBB(rect, out){
 	this.rect = rect;
 	this.out = out;
 	this.hover = false;
+	this.wire_id = 0;
 }
 
 function LogicObject(name, x, y, width, height){
@@ -258,4 +259,28 @@ function draw_objects(cx){
 			cx.closePath();
 		} 
 	}
+}
+
+function draw_wire(cx, startPoint, endPoint){
+	cx.beginPath();
+	cx.strokeStyle = "black";
+	var p1, p2;
+	
+	if(Math.abs(startPoint.x - endPoint.x) > Math.abs(startPoint.y - endPoint.y)){
+		p1 = {x: (startPoint.x + endPoint.x) / 2, y: startPoint.y};
+		p2 = {x: p1.x, y: endPoint.y};
+	} else {
+		p1 = {x: startPoint.x, y: (startPoint.y + endPoint.y) / 2};
+		p2 = {x: endPoint.x, y: p1.y};
+	}
+
+	cx.moveTo(startPoint.x, startPoint.y);
+	cx.lineTo(p1.x, p1.y);
+	cx.moveTo(p1.x, p1.y);
+	cx.lineTo(p2.x, p2.y);
+	cx.moveTo(p2.x, p2.y);
+	cx.lineTo(endPoint.x, endPoint.y);
+
+	cx.stroke();
+	cx.closePath();
 }
