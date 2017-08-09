@@ -61,3 +61,34 @@ function rectContains(r, x, y){
 		return true;
 	return false;
 }
+
+function _translate(x, y, xx, yy){
+	return {x: x + xx, y: y + yy};
+}
+ 
+function area (a, b, c) {
+	return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+}
+ 
+function intersect_1 (a, b, c, d) {
+	if (a > b)  { var temp = a; a = b; b = temp; }
+	if (c > d)  { var temp = c; c = d; d = temp; }
+	return Math.max(a,c) <= Math.min(b,d);
+}
+ 
+function lineIntersectsLine (a, b, c, d) {
+	return intersect_1 (a.x, b.x, c.x, d.x)
+		&& intersect_1 (a.y, b.y, c.y, d.y)
+		&& area(a,b,c) * area(a,b,d) <= 0
+		&& area(c,d,a) * area(c,d,b) <= 0;
+}
+
+function lineIntersectsRect(a, b, rect){
+		//Отрезок внутри
+		if( (a.x > rect.left && a.x < rect.right && a.y < rect.bottom && a.y > rect.top) || (b.x > rect.left && b.x < rect.right && b.y < rect.bottom && b.y > rect.top)) return true; 
+		if(lineIntersectsLine(a, b, {x: rect.left, y: rect.top}, {x: rect.left, y: rect.bottom})) 		return true;
+		if(lineIntersectsLine(a, b, {x: rect.right, y: rect.top}, {x: rect.right, y: rect.bottom})) 	return true;
+		if(lineIntersectsLine(a, b, {x: rect.left, y: rect.top}, {x: rect.right, y: rect.top})) 		return true;
+		if(lineIntersectsLine(a, b, {x: rect.left, y: rect.bottom}, {x: rect.right, y: rect.bottom})) 	return true;
+		return false;
+}
