@@ -25,11 +25,23 @@ var editor_state = ST_IDLE;
 var selectedWire = -1;
 var scissors = null;
 
-var sensors = [0, 0, 0, 0]; //R L T B
-var engines = [0, 0, 0, 0]; //R L T B
+var ed_sensors = [0, 1, 0, 0]; //R L T B
+var ed_engines = [0, 0, 0, 0]; //R L T B
 
-function setSensors(sens){
-	sensors = sens;
+function editor_reset(){
+	ed_sensors = [0, 1, 0, 0]; //R L T B
+	ed_engines = [0, 0, 0, 0]; //R L T B
+}
+
+function editor_setSensors(sens){
+	ed_sensors[0] = sens[1];
+	ed_sensors[1] = sens[0];
+	ed_sensors[2] = sens[3];
+	ed_sensors[3] = sens[2];
+}
+
+function editor_getEngines(){
+	return ed_engines;
 }
 
 function getObjectByName(name){
@@ -62,6 +74,14 @@ function PinBB(rect, out, parent){
 	this.hover = false;
 	this.parent = parent;
 	this.wire_point = [];
+	this.logic_level = -1;
+	this.setLogicLevel = function(level){
+		if(level == this.logic_level) return;
+		this.logic_level = level;
+		for(var i = 0; i < this.wire_point.length; i++){
+			this.wire_point[i].wire.setLogicLevel(level);
+		}
+	}
 }
 
 function Wire(p1, p2){
@@ -90,7 +110,9 @@ function Wire(p1, p2){
 	}
 	this.draw = function(cx){
 		cx.beginPath();
-		cx.strokeStyle = this.scissors_hover ? "lightgreen" : "black";
+		if(this.logic_level == -1) cx.strokeStyle = "black";
+		if(this.logic_level == 1) cx.strokeStyle = "red";
+		if(this.logic_level == 0) cx.strokeStyle = "blue";
 		cx.lineWidth = this.scissors_hover ? 4 : 2;
 		cx.moveTo(this.p1.x, this.p1.y);
 		cx.lineTo(this.m1.x, this.m1.y);
@@ -118,6 +140,13 @@ function Wire(p1, p2){
 		}
 		*/
 		cx.stroke();
+	}
+	this.setLogicLevel = function(level){ //Ставит логический уровень level на себе и всех подключенных к нему пинах
+		if(level == this.logic_level) return;
+		this.logic_level = level;
+		for(var i = 0; i < this.pins.length; i++){
+			this.pins[i].logic_level = this.logic_level;
+		}
 	}
 }
 
@@ -151,8 +180,10 @@ function LogicObject(name, x, y, width, height){
 	if(name == "not"){
 		this.pin_bb.push(new PinBB(createRect(0, 48 * hk - pin_bb_size/2, pin_bb_size, 48* hk + pin_bb_size/2), false, this));
 		this.pin_bb.push(new PinBB(createRect(this.rect.width - pin_bb_size, 48 * hk - pin_bb_size/2, this.rect.width, 48* hk + pin_bb_size/2), true, this));
-		this.func = function(a){
-			return a == 0 ? 1 : 0;
+		this.func = function(){
+			this.pin_bb[1].logic_level = (this.pin_bb[0].logic_level == 0 ? 1 : 0);
+			//Меняем лог. уровень у всех кто подключен к этому пину
+			for(var i = 0; i < this.pin_bb[1].wire_point.length; i++) this.pin_bb[1].wire_point[i].wire.setLogicLevel(this.pin_bb[1].logic_level);
 		}
 	}
 	
@@ -160,7 +191,8 @@ function LogicObject(name, x, y, width, height){
 		this.pin_bb.push(new PinBB(createRect(35, 15, 50, this.rect.height / 2 + 10), true, this));
 		this.can_delete = false;
 		this.func = function(){
-			return sensors[0];
+			this.pin_bb[0].logic_level = ed_sensors[0];
+			for(var i = 0; i < this.pin_bb[0].wire_point.length; i++) this.pin_bb[0].wire_point[i].wire.setLogicLevel(this.pin_bb[0].logic_level);
 		}
 	}
 	
@@ -168,7 +200,8 @@ function LogicObject(name, x, y, width, height){
 		this.pin_bb.push(new PinBB(createRect(35, 15, 50, this.rect.height / 2 + 10), true, this));
 		this.can_delete = false;
 		this.func = function(){
-			return sensors[1];
+			this.pin_bb[0].logic_level = ed_sensors[1];
+			for(var i = 0; i < this.pin_bb[0].wire_point.length; i++) this.pin_bb[0].wire_point[i].wire.setLogicLevel(this.pin_bb[0].logic_level);
 		}
 	}
 	
@@ -176,7 +209,8 @@ function LogicObject(name, x, y, width, height){
 		this.pin_bb.push(new PinBB(createRect(35, 15, 50, this.rect.height / 2 + 10), true, this));
 		this.can_delete = false;
 		this.func = function(){
-			return sensors[2];
+			this.pin_bb[0].logic_level = ed_sensors[2];
+			for(var i = 0; i < this.pin_bb[0].wire_point.length; i++) this.pin_bb[0].wire_point[i].wire.setLogicLevel(this.pin_bb[0].logic_level);
 		}
 	}
 	
@@ -184,65 +218,71 @@ function LogicObject(name, x, y, width, height){
 		this.pin_bb.push(new PinBB(createRect(35, 15, 50, this.rect.height / 2 + 10), true, this));
 		this.can_delete = false;
 		this.func = function(){
-			return sensors[3];
+			this.pin_bb[0].logic_level = ed_sensors[3];
+			for(var i = 0; i < this.pin_bb[0].wire_point.length; i++) this.pin_bb[0].wire_point[i].wire.setLogicLevel(this.pin_bb[0].logic_level);
 		}
 	}
 	
 	if(name == "re"){
 		this.pin_bb.push(new PinBB(createRect(0, 15, 16, this.rect.height / 2 + 10), false, this));
 		this.can_delete = false;
-		this.func = function(a){
-			engines[0] = a;
+		this.func = function(){
+			ed_engines[1] = this.pin_bb[0].logic_level;
 		}
 	}
 	
 	if(name == "le"){
 		this.pin_bb.push(new PinBB(createRect(0, 15, 16, this.rect.height / 2 + 10), false, this));
 		this.can_delete = false;
-		this.func = function(a){
-			engines[1] = a;
+		this.func = function(){
+			ed_engines[0] = this.pin_bb[0].logic_level;
 		}
 	}
 	
 	if(name == "te"){
 		this.pin_bb.push(new PinBB(createRect(0, 15, 16, this.rect.height / 2 + 10), false, this));
 		this.can_delete = false;
-		this.func = function(a){
-			engines[2] = a;
+		this.func = function(){
+			ed_engines[2] = this.pin_bb[0].logic_level;
 		}
 	}
 	
 	if(name == "be"){
 		this.pin_bb.push(new PinBB(createRect(0, 15, 16, this.rect.height / 2 + 10), false, this));
 		this.can_delete = false;
-		this.func = function(a){
-			engines[3] = a;
+		this.func = function(){
+			ed_engines[3] = this.pin_bb[0].logic_level;
 		}
 	}
 	
 	if(name == "and") {
-		this.func = function(a, b){
-			return a * b;
+		this.func = function(){
+			this.pin_bb[2].logic_level = this.pin_bb[0].logic_level * this.pin_bb[1].logic_level;
+			for(var i = 0; i < this.pin_bb[2].wire_point.length; i++) this.pin_bb[2].wire_point[i].wire.setLogicLevel(this.pin_bb[2].logic_level);
 		}
 	} 
 	if(name == "nand") {
-		this.func = function(a, b){
-			return a * b == 0 ? 1 : 0;
+		this.func = function(){
+			this.pin_bb[2].logic_level = this.pin_bb[0].logic_level * this.pin_bb[1].logic_level == 0 ? 1 : 0;
+			for(var i = 0; i < this.pin_bb[2].wire_point.length; i++) this.pin_bb[2].wire_point[i].wire.setLogicLevel(this.pin_bb[2].logic_level);
 		}
 	}  
 	if(name == "or") {
-		this.func = function(a, b){
-			return (a == 1 || b == 1) ? 1 : 0;
+		this.func = function(){
+			this.pin_bb[2].logic_level = (this.pin_bb[0].logic_level == 1 || this.pin_bb[1].logic_level == 1) ? 1 : 0;
+			for(var i = 0; i < this.pin_bb[2].wire_point.length; i++) this.pin_bb[2].wire_point[i].wire.setLogicLevel(this.pin_bb[2].logic_level);
 		}
 	} 
 	if(name == "xor") {
-		this.func = function(a, b){
-			return (a == b) ? 0 : 1;
+		this.func = function(){
+			this.pin_bb[2].logic_level =  (this.pin_bb[0].logic_level == this.pin_bb[1].logic_level) ? 0 : 1;
+			for(var i = 0; i < this.pin_bb[2].wire_point.length; i++) this.pin_bb[2].wire_point[i].wire.setLogicLevel(this.pin_bb[2].logic_level);
 		}
 	}
 	if(name == "nor") {
-		this.func = function(a, b){
-			return (a == 1 || b == 1) ? 0 : 1;
+		this.func = function(){
+			this.pin_bb[2].logic_level = (this.pin_bb[0].logic_level == 1 || this.pin_bb[1].logic_level == 1) ? 0 : 1;
+			for(var i = 0; i < this.pin_bb[2].wire_point.length; i++) this.pin_bb[2].wire_point[i].wire.setLogicLevel(this.pin_bb[2].logic_level);
 		}
 	}
 };
@@ -301,9 +341,8 @@ function init_editor(_canvas){
 	objects.push(new LogicObject("le", canvas.width - 55, canvas.height/2 - 50, 50, 50));
 	objects.push(new LogicObject("te", canvas.width - 55, canvas.height/2 + 50, 50, 50));
 	objects.push(new LogicObject("be", canvas.width - 55, canvas.height/2 + 100, 50, 50));
-	
-	console.log(getObjectByName("r").func());
 
+	
 	
 	scissors = new StaticObject("scissors", -100, -100, 50, 50);
 	
@@ -602,4 +641,39 @@ function editor_draw(cx){
 	//cx.closePath();
 	
 	cx.restore();
+}
+
+function solve(){
+	var iterationsMax = 2000;
+	
+	for(var i = 0; i < objects.length; i++){
+		var obj = objects[i];
+		for(var j = 0; j < obj.pin_bb.length; j++){
+			obj.pin_bb[j].setLogicLevel(-1);
+		}
+	}
+	
+	getObjectByName("r").pin_bb[0].setLogicLevel(ed_sensors[0]);
+	getObjectByName("l").pin_bb[0].setLogicLevel(ed_sensors[1]);
+	getObjectByName("b").pin_bb[0].setLogicLevel(ed_sensors[2]);
+	getObjectByName("t").pin_bb[0].setLogicLevel(ed_sensors[3]);
+	
+	while(--iterationsMax > 0){
+		for(var i = 0; i < objects.length; i++){
+			var obj = objects[i];
+			var hiz = false;
+			for(var j = 0; j < obj.pin_bb.length; j++){
+				var pin = obj.pin_bb[j];
+				if(pin.out) continue; //Игнорим выходы
+				if(pin.logic_level == -1) {
+					hiz = true;
+					break;
+				}
+			}
+			//На всех входных пинах элемента известен логический уровень - можно рассчитать выходное значение
+			if(!hiz){
+				obj.func();
+			}
+		}
+	}
 }

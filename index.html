@@ -23,6 +23,8 @@
 	
 	</ul>
 	
+	
+	
 	<!-- images -->
 	
 	<table width="300" border="1" cellpadding="5" style="text-align: center" align="center">
@@ -47,7 +49,8 @@
 		var world_canvas = document.getElementById("world");
 		var w_cx = null, e_cx = null;
 		var currentTime = 0, lastTime = (new Date()).getTime();
-		
+		var sensorsLast = [0, 0, 0, 0];
+		var pause = true;
 		
 		init_world(world_canvas.width, world_canvas.height);
 		init_editor(editor_canvas);
@@ -57,10 +60,31 @@
 			var delta = (currentTime - lastTime) / 1000;
 			lastTime = currentTime;
 			
-			editor_update(delta); 
+			
 			world_update(delta); 
-			editor_draw(e_cx);
 			world_draw(w_cx);
+			
+			var sensorsNew = world_readSensors();
+			
+			for(var i = 0; i < 4; i++){
+				if(sensorsLast[i] != sensorsNew[i]) 
+				{
+					editor_setSensors(sensorsNew);
+					solve();
+					world_setEngines(editor_getEngines());
+					sensorsLast[0] = sensorsNew[0];
+					sensorsLast[1] = sensorsNew[1];
+					sensorsLast[2] = sensorsNew[2];
+					sensorsLast[3] = sensorsNew[3];
+					break;
+				}
+			}
+			
+		
+			editor_update(delta); 
+			
+			editor_draw(e_cx);
+			
 		
 			requestAnimationFrame(mainLoop);
 		}
@@ -69,6 +93,16 @@
 				w_cx = world_canvas.getContext('2d');
 				e_cx = editor_canvas.getContext('2d');
 				mainLoop();
+		}
+		
+		function startSim(){
+			sensorsLast[0] = 0;
+			sensorsLast[1] = 0
+			sensorsLast[2] = 0;
+			sensorsLast[3] = 0;
+			world_setEngines([0, 0, 0, 0]);
+			editor_reset();
+			init_world(world_canvas.width, world_canvas.height);
 		}
 	</script>
 	
@@ -82,7 +116,7 @@
 	<!--<img id="or" src="images/or.png" onload="graphics_loaded()">-->
 	</div>
 	
-	
+	<input type="button" onclick="startSim();" value="solve"/>
 	
 	</th>
 	</tr>

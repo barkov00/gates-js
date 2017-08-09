@@ -18,7 +18,7 @@ var level1 = [
 	[3, 0, 0, 0, 0, 3, 0, 0, 0, 3], 
 	[3, 0, 0, 0, 0, 3, 0, 0, 0, 3], 
 	[3, 0, 0, 0, 0, 3, 0, 0, 0, 3], 
-	[3, 0, 0, 0, 0, 3, 0, 0, 0, 3], 
+	[3, 0, 0, 0, 0, 3, 0, 2, 0, 3], 
 	[3, 0, 0, 0, 0, 3, 3, 3, 0, 3], 
 	[3, 0, 0, 0, 0, 0, 0, 0, 0, 3], 
 	[3, 0, 0, 0, 0, 0, 0, 0, 0, 3],
@@ -47,6 +47,17 @@ var player_pos = {
 
 var sensors = [0, 0, 0, 0];
 var engines = [0, 0, 0, 0];
+
+function world_setEngines(e){
+	engines[0] = e[0];
+	engines[1] = e[1];
+	engines[2] = e[2];
+	engines[3] = e[3];
+}
+
+function world_readSensors(){
+	return sensors;
+}
 
 var sens = [ 		//left, right, top, bottom
 	{
@@ -98,7 +109,7 @@ function init_world(width, height){
 	cell_size = width / matrix_size;
 	sens_offs = cell_size / 9;
 	robot_size = cell_size / 1.2;
-	sensor_width = robot_size / 16;
+	sensor_width = robot_size / 5;
 	//ищем старовую позицию
 	for(var i = 0; i < matrix_size; i++){
 		for(var j = 0; j < matrix_size; j++){
@@ -146,6 +157,17 @@ function collisions(dx, dy){
 
 	
 function world_update(dt)	{
+	//engines[TOP] = sensors[LFT];
+	//engines[LFT] = sensors[TOP];
+	//engines[BTM] = sensors[RGT];
+	//engines[RGT] = sensors[TOP];
+	
+	//if( (sensors[0] + sensors[1] + sensors[2] + sensors[3]) == 0){
+	//	engines[TOP] = 1;
+	//}
+	
+	
+	
 	dx = 0;
 	dy = 0;
 	
@@ -203,20 +225,16 @@ function world_update(dt)	{
 		var cell = colliders[i];
 		if(cell.type == BRICK){
 			for(var k = 0; k < 4; k++) {
-				if(intersectRect(sens[k], cell.rect)) 
-					sensors[k] = 1;						
+				if(intersectRect(sens[k], cell.rect)) {
+					sensors[k] = 1;
+				}
 			}
 		}
 	}
 	
-	engines[TOP] = sensors[LFT];
-	engines[LFT] = sensors[BTM];
-	engines[BTM] = sensors[RGT];
-	engines[RGT] = sensors[TOP];
 	
-	if( (sensors[0] + sensors[1] + sensors[2] + sensors[3]) == 0){
-		engines[TOP] = 1;
-	}
+	
+	
 }
 
 function world_draw(cx)
