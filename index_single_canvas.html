@@ -5,35 +5,12 @@
         <meta charset='utf-8' />
 	</head>
 	<body>
-	<ul>
-	
 	Где какие тайлы:</br>
-	<li>
 	Белый (код 0) - пустота
-	</li>
-	<li>
 	Серый (код 1) - начальная позиция робота
-	</li>
-	<li>
 	Зеленый (код 2) - выход
-	</li>
-	<li>
 	Коричневый (код 3) - стена
-	</li>
-	
-	</ul>
-	
-	
-	
-	<!-- images -->
-	
-	<table width="300" border="1" cellpadding="5" style="text-align: center" align="center">
-	<tr>
-	<th width="75">
-	<canvas height='480' width='480' id='world'>Обновите браузер</canvas>
-	</th>
-	<th>
-	<canvas height='720' width='800' id='editor'>Обновите браузер</canvas>
+	<canvas  id='editor' style="background-color: #ccc">Обновите браузер</canvas>
 	<script type="text/javascript" src="utils.js"></script>
 	<script type="text/javascript" src="world_class.js"></script>
 	<script type="text/javascript" src="editor.js"></script>
@@ -46,13 +23,18 @@
 		}
 	
 		var editor_canvas = document.getElementById("editor");
-		var world_canvas = document.getElementById("world");
-		var w_cx = null, e_cx = null;
+		var w = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
+		var h = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
+		editor_canvas.width = w;
+		editor_canvas.height = h * 0.85;
+		
+		var e_cx = null;
 		var currentTime = 0, lastTime = (new Date()).getTime();
-		var sensorsLast = [0, 0, 0, 0];
+		var angle = 0;
+		
 		var world = new World();
 		
-		world.init_world(world_canvas.width, world_canvas.height);
+		world.init_world(editor_canvas.width, editor_canvas.height);
 		init_editor(editor_canvas);
 
 		function mainLoop(){
@@ -60,52 +42,35 @@
 			var delta = (currentTime - lastTime) / 1000;
 			lastTime = currentTime;
 			
-			
+			e_cx.clearRect(0, 0, editor_canvas.width, editor_canvas.height);
 			world.world_update(delta); 
-			world.world_draw(w_cx);
+			world.world_draw(e_cx);
 			
-			var sensorsNew = world.world_readSensors();
-			
-			for(var i = 0; i < 4; i++){
-				if(sensorsLast[i] != sensorsNew[i]) 
-				{
-					editor_setSensors(sensorsNew);
-					solve();
-					world.world_setEngines(editor_getEngines());
-					sensorsLast[0] = sensorsNew[0];
-					sensorsLast[1] = sensorsNew[1];
-					sensorsLast[2] = sensorsNew[2];
-					sensorsLast[3] = sensorsNew[3];
-					break;
-				}
+			if(world.sensorsChanged()){
+				editor_setSensors(world.world_readSensors());
+				solve();
+				world.world_setEngines(editor_getEngines());
 			}
-			
 		
 			editor_update(delta); 
-			
 			editor_draw(e_cx);
 			
-		
+			
+			
 			requestAnimationFrame(mainLoop);
 		}
 		
-		if ( (typeof (world_canvas.getContext) !== undefined) && (typeof (editor_canvas.getContext) !== undefined)) {
-				w_cx = world_canvas.getContext('2d');
+		if ( (typeof (editor_canvas.getContext) !== undefined)) {
 				e_cx = editor_canvas.getContext('2d');
 				mainLoop();
 		}
 		
 		function startSim(){
-			sensorsLast[0] = 0;
-			sensorsLast[1] = 0
-			sensorsLast[2] = 0;
-			sensorsLast[3] = 0;
-			world.world_setEngines([0, 0, 0, 0]);
 			editor_reset();
-			world.init_world(world_canvas.width, world_canvas.height);
+			world.init_world(editor_canvas.width, editor_canvas.height);
+			
 		}
 	</script>
-	
 	
 	<div style="display:none;">
 	<!--<img id="nand" src="images/nand.png" onload="graphics_loaded()">-->
@@ -115,12 +80,6 @@
 	<!--<img id="xor" src="images/xor.png" onload="graphics_loaded()">-->
 	<!--<img id="or" src="images/or.png" onload="graphics_loaded()">-->
 	</div>
-	
 	<input type="button" onclick="startSim();" value="solve"/>
-	
-	</th>
-	</tr>
-	</table>
-
 	</body>
 </html>

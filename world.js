@@ -7,6 +7,8 @@
 3 - brick
 */
 
+
+
 var draw_sensors = true;
 
 var EMPTY = 0, BRICK = 3;
@@ -157,8 +159,8 @@ function collisions(dx, dy){
 
 	
 function world_update(dt)	{
-	//engines[TOP] = sensors[LFT];
-	//engines[LFT] = sensors[TOP];
+	///engines[TOP] = 1;//sensors[LFT];
+	//engines[LFT] = 1;//sensors[TOP];
 	//engines[BTM] = sensors[RGT];
 	//engines[RGT] = sensors[TOP];
 	

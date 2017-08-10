@@ -92,3 +92,32 @@ function lineIntersectsRect(a, b, rect){
 		if(lineIntersectsLine(a, b, {x: rect.left, y: rect.bottom}, {x: rect.right, y: rect.bottom})) 	return true;
 		return false;
 }
+
+function rotateAroundPoint(p, origin, angle_deg){
+	var angle = angle_deg * Math.PI / 180;
+	var s = Math.sin(angle);
+	var c = Math.cos(angle);
+	// translate point back to origin:
+	p.x -= origin.x;
+	p.y -= origin.y;
+	// rotate point
+	var xnew = p.x * c - p.y * s;
+	var ynew = p.x * s + p.y * c;
+	// translate point back:
+	p.x = xnew + origin.x;
+	p.y = ynew + origin.y;
+	return p;
+}
+
+function rotateRectangleAround(rect, angle){
+	var p1 = {x: rect.left, y: rect.top};
+	var p3 = {x: rect.right, y: rect.bottom};
+	var center = rectCenter(rect);
+	var r1 = rotateAroundPoint(p1, center, angle);
+	var r3 = rotateAroundPoint(p3, center, angle);
+	rect.left = r1.x;
+	rect.top = r1.y;
+	rect.bottom = r3.y;
+	rect.right = r3.x;
+	return rect;
+}

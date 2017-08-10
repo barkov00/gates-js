@@ -373,6 +373,7 @@ function editor_update(dt){
 	var mouse_btn_code = mouse_clicked();
 	var clicked = mouse_btn_code == 0;
 	var right_click = mouse_btn_code == 2;
+	var wheel_click = mouse_btn_code == 1;
 
 	//Обработка нажатия на кнопки редактора
 	if(editor_state == ST_IDLE)
@@ -380,7 +381,7 @@ function editor_update(dt){
 		for(var i = 0; i < toolbar_btns.length; i++) {
 			var hover = rectContains(toolbar_btns[i].rect, mouse.x, mouse.y);
 			toolbar_btns[i].hover = hover;
-			if(hover && clicked && !(editor_state == ST_DRAG)){
+			if(hover && clicked && !(editor_state == ST_DRAG)){		
 				if(toolbar_btns[i].name != "scissors"){
 					var obj = new LogicObject(toolbar_btns[i].name, 300, 300, elem_width, elem_height);
 					obj.drag = true;
@@ -509,7 +510,7 @@ function editor_update(dt){
 				objects[i].pin_bb[j].hover = hover;
 			}
 			
-	
+			
 			
 			if(!pin_selected && obj_hover && clicked && (editor_state == ST_IDLE)){
 				objects[i].drag = true;
@@ -575,7 +576,7 @@ function editor_draw(cx){
 	var width = cx.canvas.clientWidth;
 	var height = cx.canvas.clientHeight;
 	
-	cx.clearRect(0, 0, width, width);
+	
 	cx.save();
 	
 	//Отрисовка панели с кнопками
@@ -659,13 +660,19 @@ function solve(){
 	getObjectByName("t").pin_bb[0].setLogicLevel(ed_sensors[3]);
 	
 	while(--iterationsMax > 0){
+		var hizDetected = false;
 		for(var i = 0; i < objects.length; i++){
 			var obj = objects[i];
 			var hiz = false;
 			for(var j = 0; j < obj.pin_bb.length; j++){
 				var pin = obj.pin_bb[j];
-				if(pin.out) continue; //Игнорим выходы
-				if(pin.logic_level == -1) {
+				if(pin.out) {
+					if(pin.logic_level == -1){
+						hizDetected = true;
+					}
+					continue; //Игнорим выходы
+				}
+				if(!pin.out && pin.logic_level == -1) {
 					hiz = true;
 					break;
 				}
@@ -675,5 +682,6 @@ function solve(){
 				obj.func();
 			}
 		}
+		if(!hizDetected) break; //На всех выходах логических элементов известен логический уровень
 	}
 }
