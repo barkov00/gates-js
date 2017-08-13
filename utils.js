@@ -51,8 +51,8 @@ function createRect(lft, tp, rgt, btm){
 		right: rgt,
 		top: tp,
 		bottom: btm,
-		width: rgt-lft,
-		height: btm-tp
+		width: Math.abs(rgt-lft),
+		height: Math.abs(btm-tp)
 	}
 }
 
@@ -93,8 +93,7 @@ function lineIntersectsRect(a, b, rect){
 		return false;
 }
 
-function rotateAroundPoint(p, origin, angle_deg){
-	var angle = angle_deg * Math.PI / 180;
+function rotateAroundPoint(p, origin, angle){
 	var s = Math.sin(angle);
 	var c = Math.cos(angle);
 	// translate point back to origin:
@@ -109,15 +108,30 @@ function rotateAroundPoint(p, origin, angle_deg){
 	return p;
 }
 
-function rotateRectangleAround(rect, angle){
+function rotateRectangle(rect, origin, angle){
 	var p1 = {x: rect.left, y: rect.top};
 	var p3 = {x: rect.right, y: rect.bottom};
-	var center = rectCenter(rect);
-	var r1 = rotateAroundPoint(p1, center, angle);
-	var r3 = rotateAroundPoint(p3, center, angle);
+	var r1 = rotateAroundPoint(p1, origin, angle);
+	var r3 = rotateAroundPoint(p3, origin, angle);
 	rect.left = r1.x;
 	rect.top = r1.y;
 	rect.bottom = r3.y;
 	rect.right = r3.x;
+	return rect;
+}
+
+function rotateAABBRectangle(rect, origin, angle){
+	var p1 = {x: rect.left, y: rect.top};
+	var p3 = {x: rect.right, y: rect.bottom};
+	var r1 = rotateAroundPoint(p1, origin, angle);
+	var r3 = rotateAroundPoint(p3, origin, angle);
+	rect.left 	= 	Math.min(r1.x, r3.x);
+	rect.top 	= 	Math.min(r1.y, r3.y);
+	rect.bottom = 	Math.max(r1.y, r3.y);
+	rect.right 	= 	Math.max(r1.x, r3.x);
+
+	rect.width = Math.abs(rect.right - rect.left);
+	rect.height = Math.abs(rect.top - rect.bottom);
+	
 	return rect;
 }

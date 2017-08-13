@@ -24,6 +24,7 @@ var ST_IDLE = 0, ST_DRAG = 1, ST_SEL_PIN = 2, ST_WIRE = 3, ST_CUT_WIRE = 4;
 var editor_state = ST_IDLE;
 var selectedWire = -1;
 var scissors = null;
+var collapse_button = null;
 
 var ed_sensors = [0, 1, 0, 0]; //R L T B
 var ed_engines = [0, 0, 0, 0]; //R L T B
@@ -50,6 +51,27 @@ function getObjectByName(name){
 	}
 }
 
+function Sprite(image, x, y, width, height){
+	this.x = x;
+	this.y = y;
+	this.width = width;
+	this.height = height;
+	this.sprite_angle = 0;
+	this.image = image;
+	this.draw = function(cx){
+		cx.save();
+		var origin = {x: this.x + this.width / 2, y: this.y + this.height / 2};
+		cx.translate(origin.x, origin.y);
+		cx.rotate(this.sprite_angle);
+		cx.translate(-origin.x, -origin.y);
+		cx.drawImage(this.image, this.x, this.y, this.width, this.height);
+		cx.restore();
+	}
+	this.rotate = function(angle){
+		this.sprite_angle += (angle * Math.PI / 180);
+	}
+}
+
 function load_image(name, src){
 	var img = new Image();
 	var load_complete = false;
@@ -59,6 +81,28 @@ function load_image(name, src){
 	img.src = src;
 	//while(!load_complete);
 	graphics[name] = img;
+}
+
+function SimpleButton(_name, x, y, width, height, image){
+	this.name = _name;
+	this.image = image;
+	this.rect = createRect(x, y, x + width, y + height);
+	this.hit = false;
+	this.draw = function(cx){
+		cx.drawImage(this.image, this.rect.left, this.rect.top, this.rect.right-this.rect.left, this.rect.bottom-this.rect.top);
+		this.hit = rectContains(this.rect, mouse.x, mouse.y);
+		if(this.hit){
+			cx.beginPath();
+			cx.strokeStyle = mouse.pressed == false ? "green" : "lightgreen";
+			cx.moveTo(this.rect.left, this.rect.top);
+			cx.lineTo(this.rect.right, this.rect.top);
+			cx.lineTo(this.rect.right, this.rect.bottom);
+			cx.lineTo(this.rect.left, this.rect.bottom);
+			cx.lineTo(this.rect.left, this.rect.top);
+			cx.stroke();
+			cx.closePath();
+		}
+	}
 }
 
 function StaticObject(_name, x, y, width, height){
@@ -116,9 +160,7 @@ function Wire(p1, p2){
 		cx.lineWidth = this.scissors_hover ? 4 : 2;
 		cx.moveTo(this.p1.x, this.p1.y);
 		cx.lineTo(this.m1.x, this.m1.y);
-		//cx.moveTo(this.m1.x, this.m1.y);
 		cx.lineTo(this.m2.x, this.m2.y);
-		//cx.moveTo(this.m2.x, this.m2.y);
 		cx.lineTo(this.p2.x, this.p2.y);
 		
 		/*
@@ -162,22 +204,25 @@ function LogicObject(name, x, y, width, height){
 	this.drag = false;
 	this.hover = false;
 	this.can_delete = true;
-	
+	this.angle = 0;
+	this.sprite_angle = 0;
 	this.rect.height = height;
 	this.rect.width = width + pin_bb_size;
-	
-	this.rect.left = x;
-	this.rect.top = y;
-	this.rect.bottom = y + this.rect.height;
-	this.rect.right = x + this.rect.width;
+	this.aabb_stroke_color = "green";
+	this.original_width = width;
+	this.original_height = height;
+	this.sprite = null;
+
 	
 	if(name == "and" || name == "nand" || name == "or" || name == "xor" || name == "nor"){
 		this.pin_bb.push(new PinBB(createRect(0, 28 * hk - pin_bb_size/2, pin_bb_size, 28* hk + pin_bb_size/2), false, this));
 		this.pin_bb.push(new PinBB(createRect(0, 70 * hk - pin_bb_size/2, pin_bb_size, 70* hk + pin_bb_size/2), false, this));
 		this.pin_bb.push(new PinBB(createRect(this.rect.width - pin_bb_size, 48 * hk - pin_bb_size/2, this.rect.width, 48* hk + pin_bb_size/2), true, this));
+		this.sprite = new Sprite(graphics[this.name], x, y, width, height);
 	} 
 	
 	if(name == "not"){
+		this.sprite = new Sprite(graphics[this.name], x, y, width, height);
 		this.pin_bb.push(new PinBB(createRect(0, 48 * hk - pin_bb_size/2, pin_bb_size, 48* hk + pin_bb_size/2), false, this));
 		this.pin_bb.push(new PinBB(createRect(this.rect.width - pin_bb_size, 48 * hk - pin_bb_size/2, this.rect.width, 48* hk + pin_bb_size/2), true, this));
 		this.func = function(){
@@ -188,6 +233,7 @@ function LogicObject(name, x, y, width, height){
 	}
 	
 	if(name == "r"){
+		this.sprite = new Sprite(graphics[this.name], x, y, width, height);
 		this.pin_bb.push(new PinBB(createRect(35, 15, 50, this.rect.height / 2 + 10), true, this));
 		this.can_delete = false;
 		this.func = function(){
@@ -197,6 +243,7 @@ function LogicObject(name, x, y, width, height){
 	}
 	
 	if(name == "l"){
+		this.sprite = new Sprite(graphics[this.name], x, y, width, height);
 		this.pin_bb.push(new PinBB(createRect(35, 15, 50, this.rect.height / 2 + 10), true, this));
 		this.can_delete = false;
 		this.func = function(){
@@ -206,6 +253,7 @@ function LogicObject(name, x, y, width, height){
 	}
 	
 	if(name == "b"){
+		this.sprite = new Sprite(graphics[this.name], x, y, width, height);
 		this.pin_bb.push(new PinBB(createRect(35, 15, 50, this.rect.height / 2 + 10), true, this));
 		this.can_delete = false;
 		this.func = function(){
@@ -215,6 +263,7 @@ function LogicObject(name, x, y, width, height){
 	}
 	
 	if(name == "t"){
+		this.sprite = new Sprite(graphics[this.name], x, y, width, height);
 		this.pin_bb.push(new PinBB(createRect(35, 15, 50, this.rect.height / 2 + 10), true, this));
 		this.can_delete = false;
 		this.func = function(){
@@ -224,6 +273,7 @@ function LogicObject(name, x, y, width, height){
 	}
 	
 	if(name == "re"){
+		this.sprite = new Sprite(graphics[this.name], x, y, width, height);
 		this.pin_bb.push(new PinBB(createRect(0, 15, 16, this.rect.height / 2 + 10), false, this));
 		this.can_delete = false;
 		this.func = function(){
@@ -232,6 +282,7 @@ function LogicObject(name, x, y, width, height){
 	}
 	
 	if(name == "le"){
+		this.sprite = new Sprite(graphics[this.name], x, y, width, height);
 		this.pin_bb.push(new PinBB(createRect(0, 15, 16, this.rect.height / 2 + 10), false, this));
 		this.can_delete = false;
 		this.func = function(){
@@ -240,6 +291,7 @@ function LogicObject(name, x, y, width, height){
 	}
 	
 	if(name == "te"){
+		this.sprite = new Sprite(graphics[this.name], x, y, width, height);
 		this.pin_bb.push(new PinBB(createRect(0, 15, 16, this.rect.height / 2 + 10), false, this));
 		this.can_delete = false;
 		this.func = function(){
@@ -248,6 +300,7 @@ function LogicObject(name, x, y, width, height){
 	}
 	
 	if(name == "be"){
+		this.sprite = new Sprite(graphics[this.name], x, y, width, height);
 		this.pin_bb.push(new PinBB(createRect(0, 15, 16, this.rect.height / 2 + 10), false, this));
 		this.can_delete = false;
 		this.func = function(){
@@ -285,6 +338,72 @@ function LogicObject(name, x, y, width, height){
 			for(var i = 0; i < this.pin_bb[2].wire_point.length; i++) this.pin_bb[2].wire_point[i].wire.setLogicLevel(this.pin_bb[2].logic_level);
 		}
 	}
+	
+	this.setPosition = function(x, y){
+		x -= this.rect.width / 2;
+		y -= this.rect.height / 2; //x, y - координаты центра элемента
+		this.sprite.x = x;
+		this.sprite.y = y;
+		this.updateAABB(x, y);
+	}
+	
+	this.updateAABB = function(x, y){
+		this.rect.left = x;
+		this.rect.top = y;
+		this.rect.bottom = y + this.rect.height;
+		this.rect.right = x + this.rect.width;
+	}
+	
+	this.getPinBounds = function(pin_id){
+		var bb = this.pin_bb[pin_id].rect;
+		var rect = {
+			left: this.x + bb.left,
+			right: this.x + bb.right,
+			top: this.y + bb.top,
+			bottom: this.y + bb.bottom
+		}
+		return rect;
+	}
+
+	this.draw = function(cx){
+		this.sprite.draw(cx);
+		if(this.hover){
+			cx.beginPath();
+			cx.strokeStyle = this.aabb_stroke_color;
+			cx.moveTo(this.rect.left, this.rect.top);
+			cx.lineTo(this.rect.right, this.rect.top);
+			cx.lineTo(this.rect.right, this.rect.bottom);
+			cx.lineTo(this.rect.left, this.rect.bottom);
+			cx.lineTo(this.rect.left, this.rect.top);
+			cx.stroke();
+			cx.closePath();
+		}
+		for(var j = 0; j < this.pin_bb.length; j++){
+			var rect = this.getPinBounds(j);
+			cx.beginPath();
+			cx.strokeStyle = this.pin_bb[j].hover ? "red" : "cyan";
+			cx.moveTo(rect.left, rect.top);
+			cx.lineTo(rect.right, rect.top);
+			cx.lineTo(rect.right, rect.bottom);
+			cx.lineTo(rect.left, rect.bottom);
+			cx.lineTo(rect.left, rect.top);
+			cx.stroke();
+			cx.closePath();
+		} 
+	}
+	
+	this.rotate = function(angle){
+		this.angle = angle;
+		this.sprite.rotate(angle);
+		var origin = rectCenter(this.rect);
+		var rad = Math.PI * this.angle / 180;
+		this.rect = rotateAABBRectangle(this.rect, origin, rad);
+		for(var i = 0; i < this.pin_bb.length; i++){
+			this.pin_bb[i].rect = rotateAABBRectangle(this.pin_bb[i].rect, {x: this.rect.width / 2, y: this.rect.height / 2}, rad);
+		}
+	}
+	
+	this.setPosition(x, y);
 };
 //classes -->
 
@@ -323,39 +442,35 @@ function init_editor(_canvas){
 	load_image("le", "images/le.png");
 	load_image("te", "images/te.png");
 	load_image("be", "images/be.png");
+	load_image("collapse", "images/collapse-button.png");
+	load_image("expand", "images/expand-button.png");
 	
-	toolbar_btns.push(new StaticObject("and", 0, 0, 100, 50));
-	toolbar_btns.push(new StaticObject("or", 0, 0, 100, 50));
-	toolbar_btns.push(new StaticObject("not", 0, 0, 100, 50));
-	toolbar_btns.push(new StaticObject("nand", 0, 0, 100, 50));
-	toolbar_btns.push(new StaticObject("nor", 0, 0, 100, 50));
-	toolbar_btns.push(new StaticObject("xor", 0, 0, 100, 50));
-	toolbar_btns.push(new StaticObject("scissors", 100, 0, 50, 50));
+	toolbar_btns.push(new SimpleButton("and", 0, 0, 100, 50, graphics["and"]));
+	toolbar_btns.push(new SimpleButton("or", 100, 0, 100, 50, graphics["or"]));
+	toolbar_btns.push(new SimpleButton("not", 200, 0, 100, 50, graphics["not"]));
+	toolbar_btns.push(new SimpleButton("nand", 300, 0, 100, 50, graphics["nand"]));
+	toolbar_btns.push(new SimpleButton("nor", 400, 0, 100, 50, graphics["nor"]));
+	toolbar_btns.push(new SimpleButton("xor", 500, 0, 100, 50, graphics["xor"]));
+	toolbar_btns.push(new SimpleButton("scissors", 600, 0, 50, 50, graphics["scissors"]));
+	collapse_button = new SimpleButton("hide_show", canvas.width - 100, 0, 50, 50, graphics["collapse"]);
+	//toolbar_btns.push(collapse_button);
 	
-	objects.push(new LogicObject("r", 0, canvas.height/2 - 100, 50, 50));
-	objects.push(new LogicObject("l", 0, canvas.height/2 - 50, 50, 50));
-	objects.push(new LogicObject("t", 0, canvas.height/2 + 50, 50, 50));
-	objects.push(new LogicObject("b", 0, canvas.height/2 + 100, 50, 50));
+	objects.push(new LogicObject("r", 200, canvas.height/2 - 100, 50, 50));
+	objects.push(new LogicObject("l", 35, canvas.height/2 - 50, 50, 50));
+	objects.push(new LogicObject("t", 35, canvas.height/2 + 50, 50, 50));
+	objects.push(new LogicObject("b", 35, canvas.height/2 + 100, 50, 50));
 	
-	objects.push(new LogicObject("re", canvas.width - 55, canvas.height/2 - 100, 50, 50));
-	objects.push(new LogicObject("le", canvas.width - 55, canvas.height/2 - 50, 50, 50));
-	objects.push(new LogicObject("te", canvas.width - 55, canvas.height/2 + 50, 50, 50));
-	objects.push(new LogicObject("be", canvas.width - 55, canvas.height/2 + 100, 50, 50));
-
-	
+	objects.push(new LogicObject("re", canvas.width - 35, canvas.height/2 - 100, 50, 50));
+	objects.push(new LogicObject("le", canvas.width - 35, canvas.height/2 - 50, 50, 50));
+	objects.push(new LogicObject("te", canvas.width - 35, canvas.height/2 + 50, 50, 50));
+	objects.push(new LogicObject("be", canvas.width - 35, canvas.height/2 + 100, 50, 50));
 	
 	scissors = new StaticObject("scissors", -100, -100, 50, 50);
 	
 	pin_bb_size = elem_height / 5;
-	//Рассчет координат кнопок
-	var offset = 0;
-	for(var i = 0; i < toolbar_btns.length; i++){
-		toolbar_btns[i].rect.left += offset;
-		toolbar_btns[i].rect.bottom = toolbar_btns[i].rect.height;
-		toolbar_btns[i].rect.right = toolbar_btns[i].rect.left + toolbar_btns[i].rect.width;
-		toolbar_btns[i].rect.top = 0;
-		offset += toolbar_btns[i].rect.width;
-	}
+
+	//objects[0].rotate(90);
+	//objects[0].rotate(90);
 }
 
 function mouse_clicked(){
@@ -369,6 +484,8 @@ function mouse_clicked(){
 	return -1;
 }
 
+var time = 0;
+
 function editor_update(dt){
 	var mouse_btn_code = mouse_clicked();
 	var clicked = mouse_btn_code == 0;
@@ -379,16 +496,20 @@ function editor_update(dt){
 	if(editor_state == ST_IDLE)
 	{
 		for(var i = 0; i < toolbar_btns.length; i++) {
-			var hover = rectContains(toolbar_btns[i].rect, mouse.x, mouse.y);
-			toolbar_btns[i].hover = hover;
-			if(hover && clicked && !(editor_state == ST_DRAG)){		
-				if(toolbar_btns[i].name != "scissors"){
+			//var hover = rectContains(toolbar_btns[i].rect, mouse.x, mouse.y);
+			//toolbar_btns[i].hover = hover;
+			var hover = toolbar_btns[i].hit;
+			if(hover && clicked && !(editor_state == ST_DRAG)){	
+				var name = toolbar_btns[i].name;
+				if(name == "scissors"){
+					editor_state = ST_CUT_WIRE;
+				} else if(name == "hide_show_button") {
+					
+				} else {
 					var obj = new LogicObject(toolbar_btns[i].name, 300, 300, elem_width, elem_height);
 					obj.drag = true;
 					editor_state = ST_DRAG;
 					objects.push(obj);
-				} else {
-					editor_state = ST_CUT_WIRE;
 				}
 				clicked = false;
 			}
@@ -402,8 +523,24 @@ function editor_update(dt){
 			editor_state = ST_IDLE;
 		}
 	}
+	
+	//tangle += 0.1;
+	//objects[0].rotate(0.1);
+	//console.log(tangle);
+
+	//objects[0].rect.left = 250;
+	//objects[0].rect.right = 200;
+	//objects[0].rect.top = 297;
+	//objects[0].rect.bottom = 347;
+	
+	//if(time > 0.9){
+	//	time = 0;
+	//	objects[0].rotate(90);
+	//}
+	
+	//time += dt;
 		
-	var mousepos = _translate(mouse.x, mouse.y, 0, -toolbar_height);
+	var mousepos = mouse;//_translate(mouse.x, mouse.y, 0, -toolbar_height);
 	
 	for(var i = 0; i < objects.length; i++){
 		var obj = objects[i];
@@ -440,6 +577,9 @@ function editor_update(dt){
 			obj.rect.top = mousepos.y - obj.rect.height/2;
 			obj.rect.bottom = obj.rect.top + obj.rect.height;
 			obj.rect.right = obj.rect.left + obj.rect.width;
+			
+			obj.setPosition(mousepos.x, mousepos.y);
+			
 			//Обновляем координат концов проводов
 			for(var j = 0; j < obj.pin_bb.length; j++){
 				var pin = obj.pin_bb[j];
@@ -460,6 +600,12 @@ function editor_update(dt){
 		} else {	
 			var obj_hover =  rectContains(obj.rect, mousepos.x, mousepos.y);
 			objects[i].hover = obj_hover;
+			
+			if(right_click & obj_hover){
+				obj.rotate(90);
+				right_click = false;
+				console.log("rotate");
+			}
 		
 			if(!(editor_state == ST_IDLE || editor_state == ST_WIRE)) 
 				continue;
@@ -510,7 +656,7 @@ function editor_update(dt){
 				objects[i].pin_bb[j].hover = hover;
 			}
 			
-			
+			objects[i].aabb_stroke_color = (clicked && obj_hover) ? "lightgreen" : "green";
 			
 			if(!pin_selected && obj_hover && clicked && (editor_state == ST_IDLE)){
 				objects[i].drag = true;
@@ -576,71 +722,22 @@ function editor_draw(cx){
 	var width = cx.canvas.clientWidth;
 	var height = cx.canvas.clientHeight;
 	
-	
 	cx.save();
-	
-	//Отрисовка панели с кнопками
-	for(var i = 0; i < toolbar_btns.length; i++){
-		var btn = toolbar_btns[i];
-		cx.drawImage(graphics[btn.name], btn.rect.left, btn.rect.top, btn.rect.right-btn.rect.left, btn.rect.bottom-btn.rect.top);
-		if(btn.hover){
-			cx.beginPath();
-			cx.strokeStyle = mouse.pressed == false ? "green" : "lightgreen";
-			cx.rect(btn.rect.left, 0, btn.rect.right-btn.rect.left, btn.rect.bottom-btn.rect.top);
-			cx.stroke();
-			cx.closePath();
-		}
-	}
-	
-	cx.translate(0, toolbar_height);
-	
-	
-	
-	//Отрисовка объектов:
-	for(var i = 0; i < objects.length; i++){
-		var obj = objects[i];
-		cx.drawImage(graphics[obj.name], obj.rect.left, obj.rect.top, obj.rect.right-obj.rect.left, obj.rect.bottom-obj.rect.top);
-		
-		if(obj.hover){
-			cx.beginPath();
-			cx.strokeStyle = mouse.pressed == false ? "green" : "lightgreen";
-			cx.rect(obj.rect.left, obj.rect.top, obj.rect.right-obj.rect.left, obj.rect.bottom-obj.rect.top);
-			cx.stroke();
-			cx.closePath();
-		}
-		
-		for(var j = 0; j < obj.pin_bb.length; j++){
-			var bb = obj.pin_bb[j].rect;
-			var rect = {
-						left: obj.rect.left + bb.left,
-						right: obj.rect.left + bb.right,
-						top: obj.rect.top + bb.top,
-						bottom: obj.rect.top + bb.bottom
-					}
-			cx.beginPath();
-			cx.strokeStyle = obj.pin_bb[j].hover ? "red" : "cyan";
-			cx.rect(rect.left, rect.top, rect.right-rect.left, rect.bottom-rect.top);
-			//cx.rect(obj.rect.left + bb.left, obj.rect.top + bb.top, bb.width, bb.height);
-			cx.stroke();
-			cx.closePath();
-		} 
-	}
-	
-	//if(wires.length > 0)
-	//console.log("s = " + scissors.rect.left + " " + scissors.rect.top + " " + scissors.rect.bottom + " " + scissors.rect.right + " l " + wires[0].p1.x + " " + wires[0].p1.y + " " + wires[0].m1.x + " " + wires[0].m1.y);
 
+	for(var i = 0; i < toolbar_btns.length; i++){ //Кнопки
+		toolbar_btns[i].draw(cx);	
+	}
+	
+	for(var i = 0; i < objects.length; i++){ //Логические элементы
+		objects[i].draw(cx);
+	}
+	
 	for(var i = 0; i < wires.length; i++){		
 		wires[i].draw(cx);
 	}
 	
-	//Отрисовка ножниц
 	cx.drawImage(graphics[scissors.name], scissors.rect.left, scissors.rect.top, scissors.rect.width, scissors.rect.height);
-	//cx.beginPath();
-	//cx.strokeStyle = "green";
-	//cx.rect(scissors.rect.left, scissors.rect.top, scissors.rect.right-scissors.rect.left, scissors.rect.bottom-scissors.rect.top);
-	//cx.stroke();
-	//cx.closePath();
-	
+		
 	cx.restore();
 }
 
