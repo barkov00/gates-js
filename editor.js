@@ -14,12 +14,8 @@ var objects = [];
 var wires = [];
 var obj_ids = 0;
 var pin_bb_size = 0;
-var original_width = 200;
-var original_height = 100;
 var elem_height = 50;
 var elem_width = 100;
-var hk = elem_height / original_height;
-var wk = elem_width / original_width;
 var ST_IDLE = 0, ST_DRAG = 1, ST_SEL_PIN = 2, ST_WIRE = 3, ST_CUT_WIRE = 4;
 var editor_state = ST_IDLE;
 var selectedWire = -1;
@@ -54,13 +50,14 @@ function getObjectByName(name){
 function Sprite(image, x, y, width, height){
 	this.x = x;
 	this.y = y;
+	this.origin_offset = {x: 0, y: 0};
 	this.width = width;
 	this.height = height;
 	this.sprite_angle = 0;
 	this.image = image;
 	this.draw = function(cx){
 		cx.save();
-		var origin = {x: this.x + this.width / 2, y: this.y + this.height / 2};
+		var origin = {x: this.x + this.width / 2 + this.origin_offset.x, y: this.y + this.height / 2 + this.origin_offset.y};
 		cx.translate(origin.x, origin.y);
 		cx.rotate(this.sprite_angle);
 		cx.translate(-origin.x, -origin.y);
@@ -112,8 +109,8 @@ function StaticObject(_name, x, y, width, height){
 	this.drag = false;
 }
 
-function PinBB(rect, out, parent){
-	this.rect = rect;
+function PinBB(left, top, right, bottom, out, parent){
+	this.rect = createRect(left, top, right, bottom);
 	this.out = out;
 	this.hover = false;
 	this.parent = parent;
@@ -207,24 +204,64 @@ function LogicObject(name, x, y, width, height){
 	this.angle = 0;
 	this.sprite_angle = 0;
 	this.rect.height = height;
-	this.rect.width = width + pin_bb_size;
+	this.rect.width = width;
 	this.aabb_stroke_color = "green";
 	this.original_width = width;
 	this.original_height = height;
 	this.sprite = null;
-
+	
+	this.getPinBounds = function(pin_id){
+		var bb = this.pin_bb[pin_id].rect;
+		var rect = {
+			left: this.x + bb.left,
+			right: this.x + bb.right,
+			top: this.y + bb.top,
+			bottom: this.y + bb.bottom
+		}
+		return rect;
+	}
+	
+	this.setPosition = function(x, y){
+		x -= this.rect.width / 2;
+		y -= this.rect.height / 2; //x, y - координаты центра элемента
+		this.x = x;
+		this.y = y;
+		this.sprite.x = x;
+		this.sprite.y = y;
+		this.updateAABB(x, y);
+		//Обновляем координат концов проводов
+		for(var j = 0; j < this.pin_bb.length; j++){
+			var pin = this.pin_bb[j];
+			if(pin.wire_point.length == 0) continue;
+			var rect = this.getPinBounds(j);
+			var c = {x: rect.left, y: (rect.top+rect.bottom)/2}//rectCenter(rect);
+			for(var k = 0; k < pin.wire_point.length; k++){
+				pin.wire_point[k].x = c.x;
+				pin.wire_point[k].y = c.y;
+			}
+		}
+	}
+	
+	this.updateAABB = function(x, y){
+		this.rect.left = x;
+		this.rect.top = y;
+		this.rect.bottom = y + this.rect.height;
+		this.rect.right = x + this.rect.width;
+	}
 	
 	if(name == "and" || name == "nand" || name == "or" || name == "xor" || name == "nor"){
-		this.pin_bb.push(new PinBB(createRect(0, 28 * hk - pin_bb_size/2, pin_bb_size, 28* hk + pin_bb_size/2), false, this));
-		this.pin_bb.push(new PinBB(createRect(0, 70 * hk - pin_bb_size/2, pin_bb_size, 70* hk + pin_bb_size/2), false, this));
-		this.pin_bb.push(new PinBB(createRect(this.rect.width - pin_bb_size, 48 * hk - pin_bb_size/2, this.rect.width, 48* hk + pin_bb_size/2), true, this));
+		this.pin_bb.push(new PinBB(0, 15  - pin_bb_size/2, pin_bb_size, 15 + pin_bb_size/2, false, this));
+		this.pin_bb.push(new PinBB(0, 36  - pin_bb_size/2, pin_bb_size, 36 + pin_bb_size/2, false, this));
+		this.pin_bb.push(new PinBB(this.rect.width - pin_bb_size, 25  - pin_bb_size/2, this.rect.width, 25 + pin_bb_size/2, true, this));
 		this.sprite = new Sprite(graphics[this.name], x, y, width, height);
+		this.sprite.origin_offset.x = 5;
 	} 
 	
 	if(name == "not"){
 		this.sprite = new Sprite(graphics[this.name], x, y, width, height);
-		this.pin_bb.push(new PinBB(createRect(0, 48 * hk - pin_bb_size/2, pin_bb_size, 48* hk + pin_bb_size/2), false, this));
-		this.pin_bb.push(new PinBB(createRect(this.rect.width - pin_bb_size, 48 * hk - pin_bb_size/2, this.rect.width, 48* hk + pin_bb_size/2), true, this));
+		this.sprite.origin_offset.x = 5;
+		this.pin_bb.push(new PinBB(0, 25  - pin_bb_size/2, pin_bb_size, 25 + pin_bb_size/2, false, this));
+		this.pin_bb.push(new PinBB(this.rect.width - pin_bb_size, 25  - pin_bb_size/2, this.rect.width, 25 + pin_bb_size/2, true, this));
 		this.func = function(){
 			this.pin_bb[1].logic_level = (this.pin_bb[0].logic_level == 0 ? 1 : 0);
 			//Меняем лог. уровень у всех кто подключен к этому пину
@@ -234,7 +271,7 @@ function LogicObject(name, x, y, width, height){
 	
 	if(name == "r"){
 		this.sprite = new Sprite(graphics[this.name], x, y, width, height);
-		this.pin_bb.push(new PinBB(createRect(35, 15, 50, this.rect.height / 2 + 10), true, this));
+		this.pin_bb.push(new PinBB(35, 15, 50, this.rect.height / 2 + 10, true, this));
 		this.can_delete = false;
 		this.func = function(){
 			this.pin_bb[0].logic_level = ed_sensors[0];
@@ -244,7 +281,7 @@ function LogicObject(name, x, y, width, height){
 	
 	if(name == "l"){
 		this.sprite = new Sprite(graphics[this.name], x, y, width, height);
-		this.pin_bb.push(new PinBB(createRect(35, 15, 50, this.rect.height / 2 + 10), true, this));
+		this.pin_bb.push(new PinBB(35, 15, 50, this.rect.height / 2 + 10, true, this));
 		this.can_delete = false;
 		this.func = function(){
 			this.pin_bb[0].logic_level = ed_sensors[1];
@@ -254,7 +291,7 @@ function LogicObject(name, x, y, width, height){
 	
 	if(name == "b"){
 		this.sprite = new Sprite(graphics[this.name], x, y, width, height);
-		this.pin_bb.push(new PinBB(createRect(35, 15, 50, this.rect.height / 2 + 10), true, this));
+		this.pin_bb.push(new PinBB(35, 15, 50, this.rect.height / 2 + 10, true, this));
 		this.can_delete = false;
 		this.func = function(){
 			this.pin_bb[0].logic_level = ed_sensors[2];
@@ -264,7 +301,7 @@ function LogicObject(name, x, y, width, height){
 	
 	if(name == "t"){
 		this.sprite = new Sprite(graphics[this.name], x, y, width, height);
-		this.pin_bb.push(new PinBB(createRect(35, 15, 50, this.rect.height / 2 + 10), true, this));
+		this.pin_bb.push(new PinBB(35, 15, 50, this.rect.height / 2 + 10, true, this));
 		this.can_delete = false;
 		this.func = function(){
 			this.pin_bb[0].logic_level = ed_sensors[3];
@@ -274,7 +311,7 @@ function LogicObject(name, x, y, width, height){
 	
 	if(name == "re"){
 		this.sprite = new Sprite(graphics[this.name], x, y, width, height);
-		this.pin_bb.push(new PinBB(createRect(0, 15, 16, this.rect.height / 2 + 10), false, this));
+		this.pin_bb.push(new PinBB(0, 15, 16, this.rect.height / 2 + 10, false, this));
 		this.can_delete = false;
 		this.func = function(){
 			ed_engines[1] = this.pin_bb[0].logic_level;
@@ -283,7 +320,7 @@ function LogicObject(name, x, y, width, height){
 	
 	if(name == "le"){
 		this.sprite = new Sprite(graphics[this.name], x, y, width, height);
-		this.pin_bb.push(new PinBB(createRect(0, 15, 16, this.rect.height / 2 + 10), false, this));
+		this.pin_bb.push(new PinBB(0, 15, 16, this.rect.height / 2 + 10, false, this));
 		this.can_delete = false;
 		this.func = function(){
 			ed_engines[0] = this.pin_bb[0].logic_level;
@@ -292,7 +329,7 @@ function LogicObject(name, x, y, width, height){
 	
 	if(name == "te"){
 		this.sprite = new Sprite(graphics[this.name], x, y, width, height);
-		this.pin_bb.push(new PinBB(createRect(0, 15, 16, this.rect.height / 2 + 10), false, this));
+		this.pin_bb.push(new PinBB(0, 15, 16, this.rect.height / 2 + 10, false, this));
 		this.can_delete = false;
 		this.func = function(){
 			ed_engines[2] = this.pin_bb[0].logic_level;
@@ -301,7 +338,7 @@ function LogicObject(name, x, y, width, height){
 	
 	if(name == "be"){
 		this.sprite = new Sprite(graphics[this.name], x, y, width, height);
-		this.pin_bb.push(new PinBB(createRect(0, 15, 16, this.rect.height / 2 + 10), false, this));
+		this.pin_bb.push(new PinBB(0, 15, 16, this.rect.height / 2 + 10, false, this));
 		this.can_delete = false;
 		this.func = function(){
 			ed_engines[3] = this.pin_bb[0].logic_level;
@@ -339,32 +376,6 @@ function LogicObject(name, x, y, width, height){
 		}
 	}
 	
-	this.setPosition = function(x, y){
-		x -= this.rect.width / 2;
-		y -= this.rect.height / 2; //x, y - координаты центра элемента
-		this.sprite.x = x;
-		this.sprite.y = y;
-		this.updateAABB(x, y);
-	}
-	
-	this.updateAABB = function(x, y){
-		this.rect.left = x;
-		this.rect.top = y;
-		this.rect.bottom = y + this.rect.height;
-		this.rect.right = x + this.rect.width;
-	}
-	
-	this.getPinBounds = function(pin_id){
-		var bb = this.pin_bb[pin_id].rect;
-		var rect = {
-			left: this.x + bb.left,
-			right: this.x + bb.right,
-			top: this.y + bb.top,
-			bottom: this.y + bb.bottom
-		}
-		return rect;
-	}
-
 	this.draw = function(cx){
 		this.sprite.draw(cx);
 		if(this.hover){
@@ -397,9 +408,10 @@ function LogicObject(name, x, y, width, height){
 		this.sprite.rotate(angle);
 		var origin = rectCenter(this.rect);
 		var rad = Math.PI * this.angle / 180;
+		var origin_local = {x: origin.x - this.x, y: origin.y - this.y};
 		this.rect = rotateAABBRectangle(this.rect, origin, rad);
 		for(var i = 0; i < this.pin_bb.length; i++){
-			this.pin_bb[i].rect = rotateAABBRectangle(this.pin_bb[i].rect, {x: this.rect.width / 2, y: this.rect.height / 2}, rad);
+			this.pin_bb[i].rect = rotateAABBRectangle(this.pin_bb[i].rect, origin_local, rad);
 		}
 	}
 	
@@ -539,6 +551,8 @@ function editor_update(dt){
 	//}
 	
 	//time += dt;
+	
+	
 		
 	var mousepos = mouse;//_translate(mouse.x, mouse.y, 0, -toolbar_height);
 	
@@ -573,35 +587,12 @@ function editor_update(dt){
 		
 		if(objects[i].drag){	
 			//Обработка перетаскивания объекта - привязываем объект к курсору мыши во время перетаскивания
-			obj.rect.left = mousepos.x - obj.rect.width/2;
-			obj.rect.top = mousepos.y - obj.rect.height/2;
-			obj.rect.bottom = obj.rect.top + obj.rect.height;
-			obj.rect.right = obj.rect.left + obj.rect.width;
-			
 			obj.setPosition(mousepos.x, mousepos.y);
-			
-			//Обновляем координат концов проводов
-			for(var j = 0; j < obj.pin_bb.length; j++){
-				var pin = obj.pin_bb[j];
-				if(pin.wire_point.length == 0) continue;
-				var bb = pin.rect;
-				var rect = {
-					left: obj.rect.left + bb.left,
-					right: obj.rect.left + bb.right,
-					top: obj.rect.top + bb.top,
-					bottom: obj.rect.top + bb.bottom
-				}
-				var c = rectCenter(rect);
-				for(var k = 0; k < pin.wire_point.length; k++){
-					pin.wire_point[k].x = c.x;
-					pin.wire_point[k].y = c.y;
-				}
-			}
 		} else {	
-			var obj_hover =  rectContains(obj.rect, mousepos.x, mousepos.y);
-			objects[i].hover = obj_hover;
+			var obj_hit =  rectContains(obj.rect, mousepos.x, mousepos.y);
+			objects[i].hover = obj_hit;
 			
-			if(right_click & obj_hover){
+			if(right_click & obj_hit){
 				obj.rotate(90);
 				right_click = false;
 				console.log("rotate");
@@ -614,24 +605,17 @@ function editor_update(dt){
 		    var pin_selected = false;
 			for(var j = 0; j < obj.pin_bb.length; j++){
 				var pin = obj.pin_bb[j];
-				var bb = pin.rect;
-				var rect = {
-					left: obj.rect.left + bb.left,
-					right: obj.rect.left + bb.right,
-					top: obj.rect.top + bb.top,
-					bottom: obj.rect.top + bb.bottom
-				}
+				var rect = obj.getPinBounds(j);
 				var hover = rectContains(rect, mousepos.x, mousepos.y);
 				if(hover) {
 					pin_selected = true;
 					if(clicked && (editor_state != ST_WIRE)){
 						//Клик по пину
-						selectedWire = new Wire(rectCenter(rect), mousepos);
+						selectedWire = new Wire(rectCenter(rect), {x: mousepos.x, y: mousepos.y});
 						selectedWire.pins[0] = pin;
 						var st = selectedWire.p1;
 						st.wire = selectedWire;
-						console.log(st);
-						pin.wire_point.push(st /*{x: selectedWire.p1.x, y: selectedWire.p1.y, wire: selectedWire}*/ );
+						pin.wire_point.push(st);
 						wires.push(selectedWire);
 						editor_state = ST_WIRE;
 						clicked = false;
@@ -647,7 +631,7 @@ function editor_update(dt){
 						selectedWire.pins[1] = pin;
 						var st = selectedWire.p2;
 						st.wire = selectedWire;
-						pin.wire_point.push(st /*{x: selectedWire.p2.x, y: selectedWire.p2.y, wire: selectedWire}*/ );
+						pin.wire_point.push(st);
 						selectedWire = null;
 						editor_state = ST_IDLE;
 						clicked = false;
@@ -656,9 +640,9 @@ function editor_update(dt){
 				objects[i].pin_bb[j].hover = hover;
 			}
 			
-			objects[i].aabb_stroke_color = (clicked && obj_hover) ? "lightgreen" : "green";
+			objects[i].aabb_stroke_color = (clicked && obj_hit) ? "lightgreen" : "green";
 			
-			if(!pin_selected && obj_hover && clicked && (editor_state == ST_IDLE)){
+			if(!pin_selected && obj_hit && clicked && (editor_state == ST_IDLE)){
 				objects[i].drag = true;
 				editor_state = ST_DRAG; //начало перетаскивания объекта
 				continue;
