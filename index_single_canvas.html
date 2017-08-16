@@ -10,7 +10,7 @@
 	Серый (код 1) - начальная позиция робота
 	Зеленый (код 2) - выход
 	Коричневый (код 3) - стена
-	<canvas  id='editor' style="background-color: #ccc">Обновите браузер</canvas>
+	<canvas  id='editor'>Обновите браузер</canvas>
 	<script type="text/javascript" src="utils.js"></script>
 	<script type="text/javascript" src="world_class.js"></script>
 	<script type="text/javascript" src="editor.js"></script>
@@ -28,7 +28,7 @@
 		editor_canvas.width = w;
 		editor_canvas.height = h * 0.85;
 		
-		var e_cx = null;
+		var cx = null;
 		var currentTime = 0, lastTime = (new Date()).getTime();
 		var angle = 0;
 		
@@ -41,35 +41,16 @@
 			currentTime = (new Date()).getTime();
 			var delta = (currentTime - lastTime) / 1000;
 			lastTime = currentTime;
-			
-			e_cx.clearRect(0, 0, editor_canvas.width, editor_canvas.height);
-			world.world_update(delta); 
-			world.world_draw(e_cx);
-			
-			if(world.sensorsChanged()){
-				editor_setSensors(world.world_readSensors());
-				solve();
-				world.world_setEngines(editor_getEngines());
-			}
-		
-			editor_update(delta); 
-			editor_draw(e_cx);
-			
-			
-			
+			cx.clearRect(0, 0, editor_canvas.width, editor_canvas.height);
+			game_loop(cx, delta, world);
 			requestAnimationFrame(mainLoop);
 		}
 		
 		if ( (typeof (editor_canvas.getContext) !== undefined)) {
-				e_cx = editor_canvas.getContext('2d');
+				cx = editor_canvas.getContext('2d');
 				mainLoop();
 		}
 		
-		function startSim(){
-			editor_reset();
-			world.init_world(editor_canvas.width, editor_canvas.height);
-			
-		}
 	</script>
 	
 	<div style="display:none;">
@@ -80,6 +61,5 @@
 	<!--<img id="xor" src="images/xor.png" onload="graphics_loaded()">-->
 	<!--<img id="or" src="images/or.png" onload="graphics_loaded()">-->
 	</div>
-	<input type="button" onclick="startSim();" value="solve"/>
 	</body>
 </html>

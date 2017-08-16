@@ -33,6 +33,8 @@ function getCellBB(i, j, cell_size){
 function World(){
 	var EMPTY = 0, BRICK = 3;
 	var LFT = 0, RGT = 1, TOP = 2, BTM = 3;
+	this.width = 0;
+	this.height = 0;
 	this.sensorsLast = [-1, -1, -1, -1];
 	this.draw_sensors = true;
 	this.colliders = [];
@@ -65,13 +67,14 @@ function World(){
 	};
 	
 	this.sensorsChanged = function(){
-		for(var i = 0; i < 4; i++) 
-		if(this.sensorsLast[i] != this.sensors[i]) {
-			this.sensorsLast[0] = this.sensors[0]; 
-			this.sensorsLast[1] = this.sensors[1]; 
-			this.sensorsLast[2] = this.sensors[2]; 
-			this.sensorsLast[3] = this.sensors[3];
-			return true;
+		for(var i = 0; i < 4; i++){ 
+			if(this.sensorsLast[i] != this.sensors[i]) {
+				this.sensorsLast[0] = this.sensors[0]; 
+				this.sensorsLast[1] = this.sensors[1]; 
+				this.sensorsLast[2] = this.sensors[2]; 
+				this.sensorsLast[3] = this.sensors[3];
+				return true;
+			}
 		}
 		return false;
 	}
@@ -109,6 +112,8 @@ function World(){
 	
 	this.init_world = function(width, height){
 		//this.cell_size = width / this.matrix_size;
+		this.width = width;
+		this.height = height;
 		this.sensorsLast = [-1, -1, -1, -1];
 		this.sens_offs = this.cell_size / 9;
 		this.robot_size = this.cell_size / 1.2;
@@ -133,16 +138,13 @@ function World(){
 			}
 		}
 	};
+	
+	this.reset = function(){
+		this.sensorsLast[0] = -1;
+		this.init_world(this.width, this.height);
+	}
 
 	this.world_update = function(dt){
-		///engines[TOP] = 1;//sensors[LFT];
-		//engines[LFT] = 1;//sensors[TOP];
-		//engines[BTM] = sensors[RGT];
-		//engines[RGT] = sensors[TOP];
-		
-		//if( (sensors[0] + sensors[1] + sensors[2] + sensors[3]) == 0){
-		//	engines[TOP] = 1;
-		//}
 		this.dx = 0;
 		this.dy = 0;
 		
@@ -206,6 +208,8 @@ function World(){
 				}
 			}
 		}
+		
+		
 	}
 	
 	this.world_draw = function(cx){

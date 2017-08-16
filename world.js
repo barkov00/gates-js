@@ -48,6 +48,7 @@ var player_pos = {
 }
 
 var sensors = [0, 0, 0, 0];
+var sensors_last = [0, 0, 0, 0];
 var engines = [0, 0, 0, 0];
 
 function world_setEngines(e){
@@ -57,8 +58,20 @@ function world_setEngines(e){
 	engines[3] = e[3];
 }
 
+function world_reset(){
+	sensors_last[0] = -1;
+	
+}
+
 function world_readSensors(){
 	return sensors;
+}
+
+function sensorsChanged(){
+	var changed = false;
+	for(var i = 0; i < 4; i++) if(sensors[i] != sensors_last[i]) changed = true;
+	for(var i = 0; i < 4; i++) sensors_last[i] = sensors[i];
+	return changed;
 }
 
 var sens = [ 		//left, right, top, bottom

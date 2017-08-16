@@ -21,24 +21,16 @@ var editor_state = ST_IDLE;
 var selectedWire = -1;
 var scissors = null;
 var collapse_button = null;
+var power_button = null;
+var editor_visible = true;
+var world_instance = null;
 
-var ed_sensors = [0, 1, 0, 0]; //R L T B
+var ed_sensors = [0, 0, 0, 0]; //R L T B
 var ed_engines = [0, 0, 0, 0]; //R L T B
 
 function editor_reset(){
-	ed_sensors = [0, 1, 0, 0]; //R L T B
+	ed_sensors = [0, 0, 0, 0]; //R L T B
 	ed_engines = [0, 0, 0, 0]; //R L T B
-}
-
-function editor_setSensors(sens){
-	ed_sensors[0] = sens[1];
-	ed_sensors[1] = sens[0];
-	ed_sensors[2] = sens[3];
-	ed_sensors[3] = sens[2];
-}
-
-function editor_getEngines(){
-	return ed_engines;
 }
 
 function getObjectByName(name){
@@ -221,6 +213,20 @@ function LogicObject(name, x, y, width, height){
 		return rect;
 	}
 	
+	this.updateWirePosition = function(){
+		//Обновляем координат концов проводов
+		for(var j = 0; j < this.pin_bb.length; j++){
+			var pin = this.pin_bb[j];
+			if(pin.wire_point.length == 0) continue;
+			var rect = this.getPinBounds(j);
+			var c = {x: rect.left, y: (rect.top+rect.bottom)/2};
+			for(var k = 0; k < pin.wire_point.length; k++){
+				pin.wire_point[k].x = c.x;
+				pin.wire_point[k].y = c.y;
+			}
+		}	
+	}
+	
 	this.setPosition = function(x, y){
 		x -= this.rect.width / 2;
 		y -= this.rect.height / 2; //x, y - координаты центра элемента
@@ -229,18 +235,22 @@ function LogicObject(name, x, y, width, height){
 		this.sprite.x = x;
 		this.sprite.y = y;
 		this.updateAABB(x, y);
-		//Обновляем координат концов проводов
-		for(var j = 0; j < this.pin_bb.length; j++){
-			var pin = this.pin_bb[j];
-			if(pin.wire_point.length == 0) continue;
-			var rect = this.getPinBounds(j);
-			var c = {x: rect.left, y: (rect.top+rect.bottom)/2}//rectCenter(rect);
-			for(var k = 0; k < pin.wire_point.length; k++){
-				pin.wire_point[k].x = c.x;
-				pin.wire_point[k].y = c.y;
-			}
-		}
+		this.updateWirePosition();
 	}
+	
+	this.translate = function(x, y) {
+		this.x += x;
+		this.y += y;
+		this.sprite.x += x;
+		this.sprite.y += y;
+		this.rect.left += x;
+		this.rect.top += y;
+		this.rect.right += x;
+		this.rect.bottom += y;
+		this.updateWirePosition();
+	}
+	
+	
 	
 	this.updateAABB = function(x, y){
 		this.rect.left = x;
@@ -254,12 +264,12 @@ function LogicObject(name, x, y, width, height){
 		this.pin_bb.push(new PinBB(0, 36  - pin_bb_size/2, pin_bb_size, 36 + pin_bb_size/2, false, this));
 		this.pin_bb.push(new PinBB(this.rect.width - pin_bb_size, 25  - pin_bb_size/2, this.rect.width, 25 + pin_bb_size/2, true, this));
 		this.sprite = new Sprite(graphics[this.name], x, y, width, height);
-		this.sprite.origin_offset.x = 5;
+		//this.sprite.origin_offset.x = 5;
 	} 
 	
 	if(name == "not"){
 		this.sprite = new Sprite(graphics[this.name], x, y, width, height);
-		this.sprite.origin_offset.x = 5;
+		//this.sprite.origin_offset.x = 5;
 		this.pin_bb.push(new PinBB(0, 25  - pin_bb_size/2, pin_bb_size, 25 + pin_bb_size/2, false, this));
 		this.pin_bb.push(new PinBB(this.rect.width - pin_bb_size, 25  - pin_bb_size/2, this.rect.width, 25 + pin_bb_size/2, true, this));
 		this.func = function(){
@@ -274,7 +284,7 @@ function LogicObject(name, x, y, width, height){
 		this.pin_bb.push(new PinBB(35, 15, 50, this.rect.height / 2 + 10, true, this));
 		this.can_delete = false;
 		this.func = function(){
-			this.pin_bb[0].logic_level = ed_sensors[0];
+			this.pin_bb[0].logic_level = ed_sensors[1];
 			for(var i = 0; i < this.pin_bb[0].wire_point.length; i++) this.pin_bb[0].wire_point[i].wire.setLogicLevel(this.pin_bb[0].logic_level);
 		}
 	}
@@ -284,7 +294,7 @@ function LogicObject(name, x, y, width, height){
 		this.pin_bb.push(new PinBB(35, 15, 50, this.rect.height / 2 + 10, true, this));
 		this.can_delete = false;
 		this.func = function(){
-			this.pin_bb[0].logic_level = ed_sensors[1];
+			this.pin_bb[0].logic_level = ed_sensors[0];
 			for(var i = 0; i < this.pin_bb[0].wire_point.length; i++) this.pin_bb[0].wire_point[i].wire.setLogicLevel(this.pin_bb[0].logic_level);
 		}
 	}
@@ -294,7 +304,7 @@ function LogicObject(name, x, y, width, height){
 		this.pin_bb.push(new PinBB(35, 15, 50, this.rect.height / 2 + 10, true, this));
 		this.can_delete = false;
 		this.func = function(){
-			this.pin_bb[0].logic_level = ed_sensors[2];
+			this.pin_bb[0].logic_level = ed_sensors[3];
 			for(var i = 0; i < this.pin_bb[0].wire_point.length; i++) this.pin_bb[0].wire_point[i].wire.setLogicLevel(this.pin_bb[0].logic_level);
 		}
 	}
@@ -304,7 +314,7 @@ function LogicObject(name, x, y, width, height){
 		this.pin_bb.push(new PinBB(35, 15, 50, this.rect.height / 2 + 10, true, this));
 		this.can_delete = false;
 		this.func = function(){
-			this.pin_bb[0].logic_level = ed_sensors[3];
+			this.pin_bb[0].logic_level = ed_sensors[2];
 			for(var i = 0; i < this.pin_bb[0].wire_point.length; i++) this.pin_bb[0].wire_point[i].wire.setLogicLevel(this.pin_bb[0].logic_level);
 		}
 	}
@@ -391,8 +401,15 @@ function LogicObject(name, x, y, width, height){
 		}
 		for(var j = 0; j < this.pin_bb.length; j++){
 			var rect = this.getPinBounds(j);
-			cx.beginPath();
+			cx.lineWidth = this.pin_bb[j].hover ? 4 : 2;
+			//cx.strokeStyle = this.pin_bb[j].hover ? "red" : "cyan";
 			cx.strokeStyle = this.pin_bb[j].hover ? "red" : "cyan";
+			if(this.pin_bb[j].logic_level == -1) cx.strokeStyle = "black";
+			if(this.pin_bb[j].logic_level == 1) cx.strokeStyle = "red";
+			if(this.pin_bb[j].logic_level == 0) cx.strokeStyle = "blue";
+			cx.beginPath();
+			
+			
 			cx.moveTo(rect.left, rect.top);
 			cx.lineTo(rect.right, rect.top);
 			cx.lineTo(rect.right, rect.bottom);
@@ -400,7 +417,10 @@ function LogicObject(name, x, y, width, height){
 			cx.lineTo(rect.left, rect.top);
 			cx.stroke();
 			cx.closePath();
+			
 		} 
+		cx.lineWidth = 2;
+		cx.strokeStyle = "black";
 	}
 	
 	this.rotate = function(angle){
@@ -413,6 +433,7 @@ function LogicObject(name, x, y, width, height){
 		for(var i = 0; i < this.pin_bb.length; i++){
 			this.pin_bb[i].rect = rotateAABBRectangle(this.pin_bb[i].rect, origin_local, rad);
 		}
+		this.updateWirePosition();
 	}
 	
 	this.setPosition(x, y);
@@ -426,7 +447,6 @@ function init_editor(_canvas){
 		var rect = canvas.getBoundingClientRect();
         mouse.x = evt.clientX - rect.left;
 		mouse.y = evt.clientY - rect.top;
-		
       }, false);
 	  
 	canvas.addEventListener('contextmenu', event => event.preventDefault());
@@ -456,6 +476,7 @@ function init_editor(_canvas){
 	load_image("be", "images/be.png");
 	load_image("collapse", "images/collapse-button.png");
 	load_image("expand", "images/expand-button.png");
+	load_image("poweron", "images/poweron_button.png");
 	
 	toolbar_btns.push(new SimpleButton("and", 0, 0, 100, 50, graphics["and"]));
 	toolbar_btns.push(new SimpleButton("or", 100, 0, 100, 50, graphics["or"]));
@@ -464,10 +485,10 @@ function init_editor(_canvas){
 	toolbar_btns.push(new SimpleButton("nor", 400, 0, 100, 50, graphics["nor"]));
 	toolbar_btns.push(new SimpleButton("xor", 500, 0, 100, 50, graphics["xor"]));
 	toolbar_btns.push(new SimpleButton("scissors", 600, 0, 50, 50, graphics["scissors"]));
-	collapse_button = new SimpleButton("hide_show", canvas.width - 100, 0, 50, 50, graphics["collapse"]);
-	//toolbar_btns.push(collapse_button);
+	collapse_button = new SimpleButton("hide_show_button", canvas.width - 100, 0, 50, 50, graphics["collapse"]);
+	power_button = new SimpleButton("poweron", canvas.width - 170, 0, 50, 50, graphics["poweron"]);
 	
-	objects.push(new LogicObject("r", 200, canvas.height/2 - 100, 50, 50));
+	objects.push(new LogicObject("r", 35, canvas.height/2 - 100, 50, 50));
 	objects.push(new LogicObject("l", 35, canvas.height/2 - 50, 50, 50));
 	objects.push(new LogicObject("t", 35, canvas.height/2 + 50, 50, 50));
 	objects.push(new LogicObject("b", 35, canvas.height/2 + 100, 50, 50));
@@ -480,9 +501,6 @@ function init_editor(_canvas){
 	scissors = new StaticObject("scissors", -100, -100, 50, 50);
 	
 	pin_bb_size = elem_height / 5;
-
-	//objects[0].rotate(90);
-	//objects[0].rotate(90);
 }
 
 function mouse_clicked(){
@@ -504,6 +522,24 @@ function editor_update(dt){
 	var right_click = mouse_btn_code == 2;
 	var wheel_click = mouse_btn_code == 1;
 
+	if(collapse_button.hit && clicked){
+		if(editor_visible){
+			editor_visible = false;
+			collapse_button.image = graphics["expand"];
+		} else {
+			editor_visible = true;
+			collapse_button.image = graphics["collapse"];
+		}
+		clicked = false;
+	}
+	
+	if(power_button.hit && clicked){
+		world_instance.reset();
+		clicked = false;
+	}
+	
+	if(!editor_visible) return;
+	
 	//Обработка нажатия на кнопки редактора
 	if(editor_state == ST_IDLE)
 	{
@@ -511,12 +547,11 @@ function editor_update(dt){
 			//var hover = rectContains(toolbar_btns[i].rect, mouse.x, mouse.y);
 			//toolbar_btns[i].hover = hover;
 			var hover = toolbar_btns[i].hit;
+			var button = toolbar_btns[i];
 			if(hover && clicked && !(editor_state == ST_DRAG)){	
 				var name = toolbar_btns[i].name;
 				if(name == "scissors"){
 					editor_state = ST_CUT_WIRE;
-				} else if(name == "hide_show_button") {
-					
 				} else {
 					var obj = new LogicObject(toolbar_btns[i].name, 300, 300, elem_width, elem_height);
 					obj.drag = true;
@@ -535,26 +570,6 @@ function editor_update(dt){
 			editor_state = ST_IDLE;
 		}
 	}
-	
-	//tangle += 0.1;
-	//objects[0].rotate(0.1);
-	//console.log(tangle);
-
-	//objects[0].rect.left = 250;
-	//objects[0].rect.right = 200;
-	//objects[0].rect.top = 297;
-	//objects[0].rect.bottom = 347;
-	
-	//if(time > 0.9){
-	//	time = 0;
-	//	objects[0].rotate(90);
-	//}
-	
-	//time += dt;
-	
-	
-		
-	var mousepos = mouse;//_translate(mouse.x, mouse.y, 0, -toolbar_height);
 	
 	for(var i = 0; i < objects.length; i++){
 		var obj = objects[i];
@@ -587,9 +602,9 @@ function editor_update(dt){
 		
 		if(objects[i].drag){	
 			//Обработка перетаскивания объекта - привязываем объект к курсору мыши во время перетаскивания
-			obj.setPosition(mousepos.x, mousepos.y);
+			obj.translate(mouse.x - obj.rect.left - obj.rect.width / 2, mouse.y - obj.rect.top - obj.rect.height / 2);
 		} else {	
-			var obj_hit =  rectContains(obj.rect, mousepos.x, mousepos.y);
+			var obj_hit =  rectContains(obj.rect, mouse.x, mouse.y);
 			objects[i].hover = obj_hit;
 			
 			if(right_click & obj_hit){
@@ -606,12 +621,12 @@ function editor_update(dt){
 			for(var j = 0; j < obj.pin_bb.length; j++){
 				var pin = obj.pin_bb[j];
 				var rect = obj.getPinBounds(j);
-				var hover = rectContains(rect, mousepos.x, mousepos.y);
+				var hover = rectContains(rect, mouse.x, mouse.y);
 				if(hover) {
 					pin_selected = true;
 					if(clicked && (editor_state != ST_WIRE)){
 						//Клик по пину
-						selectedWire = new Wire(rectCenter(rect), {x: mousepos.x, y: mousepos.y});
+						selectedWire = new Wire(rectCenter(rect), {x: mouse.x, y: mouse.y});
 						selectedWire.pins[0] = pin;
 						var st = selectedWire.p1;
 						st.wire = selectedWire;
@@ -651,13 +666,13 @@ function editor_update(dt){
 	} 
 	
 	if(editor_state == ST_WIRE){
-		selectedWire.p2.x = mousepos.x;
-		selectedWire.p2.y = mousepos.y;
+		selectedWire.p2.x = mouse.x;
+		selectedWire.p2.y = mouse.y;
 	}
 	
 	if(editor_state == ST_CUT_WIRE){
-		scissors.rect.left = mousepos.x - scissors.rect.width/2;
-		scissors.rect.top = mousepos.y - scissors.rect.height/2;
+		scissors.rect.left = mouse.x - scissors.rect.width/2;
+		scissors.rect.top = mouse.y - scissors.rect.height/2;
 		scissors.rect.bottom = scissors.rect.top + scissors.rect.height;
 		scissors.rect.right = scissors.rect.left + scissors.rect.width;
 		if(right_click){
@@ -707,25 +722,34 @@ function editor_draw(cx){
 	var height = cx.canvas.clientHeight;
 	
 	cx.save();
+	
+	collapse_button.draw(cx);
+	power_button.draw(cx);
 
-	for(var i = 0; i < toolbar_btns.length; i++){ //Кнопки
-		toolbar_btns[i].draw(cx);	
+	if(editor_visible){
+		for(var i = 0; i < toolbar_btns.length; i++){ //Кнопки
+			toolbar_btns[i].draw(cx);	
+		}
+		
+		for(var i = 0; i < objects.length; i++){ //Логические элементы
+			objects[i].draw(cx);
+		}
+		
+		for(var i = 0; i < wires.length; i++){		
+			wires[i].draw(cx);
+		}
+		
+		cx.drawImage(graphics[scissors.name], scissors.rect.left, scissors.rect.top, scissors.rect.width, scissors.rect.height);
 	}
-	
-	for(var i = 0; i < objects.length; i++){ //Логические элементы
-		objects[i].draw(cx);
-	}
-	
-	for(var i = 0; i < wires.length; i++){		
-		wires[i].draw(cx);
-	}
-	
-	cx.drawImage(graphics[scissors.name], scissors.rect.left, scissors.rect.top, scissors.rect.width, scissors.rect.height);
 		
 	cx.restore();
 }
 
 function solve(){
+	if(world_instance == null) return;
+
+	ed_engines = [0, 0, 0, 0];
+	
 	var iterationsMax = 2000;
 	
 	for(var i = 0; i < objects.length; i++){
@@ -734,11 +758,6 @@ function solve(){
 			obj.pin_bb[j].setLogicLevel(-1);
 		}
 	}
-	
-	getObjectByName("r").pin_bb[0].setLogicLevel(ed_sensors[0]);
-	getObjectByName("l").pin_bb[0].setLogicLevel(ed_sensors[1]);
-	getObjectByName("b").pin_bb[0].setLogicLevel(ed_sensors[2]);
-	getObjectByName("t").pin_bb[0].setLogicLevel(ed_sensors[3]);
 	
 	while(--iterationsMax > 0){
 		var hizDetected = false;
@@ -765,4 +784,27 @@ function solve(){
 		}
 		if(!hizDetected) break; //На всех выходах логических элементов известен логический уровень
 	}
+}
+
+function game_loop(cx, delta, world){
+	world_instance = world;
+	
+	world.world_update(delta); 
+	world.world_draw(cx);	
+	if(editor_visible){
+		cx.fillStyle = "rgba(255,255,255,0.9)";
+		cx.fillRect(0, 0, cx.canvas.clientWidth, cx.canvas.clientHeight);
+	}
+	if(world.sensorsChanged()){
+		var sensors = world.world_readSensors();
+		for(var i = 0; i < 4; i++) ed_sensors[i] = sensors[i];
+		//console.log(ed_sensors);
+		solve();
+		world.world_setEngines(ed_engines);
+		console.log(ed_engines);
+		
+	}
+	
+	editor_update(delta); 
+	editor_draw(cx);
 }
