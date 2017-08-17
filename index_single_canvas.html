@@ -4,12 +4,15 @@
 		<title></title>
         <meta charset='utf-8' />
 	</head>
+	<style>
+	html, body {
+		background-color: #021B21;
+		margin: 0;
+		width:  100%;
+		height: 100%;
+	}
+	</style>
 	<body>
-	Где какие тайлы:</br>
-	Белый (код 0) - пустота
-	Серый (код 1) - начальная позиция робота
-	Зеленый (код 2) - выход
-	Коричневый (код 3) - стена
 	<canvas  id='editor'>Обновите браузер</canvas>
 	<script type="text/javascript" src="utils.js"></script>
 	<script type="text/javascript" src="world_class.js"></script>
@@ -26,17 +29,25 @@
 		var w = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
 		var h = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
 		editor_canvas.width = w;
-		editor_canvas.height = h * 0.85;
+		editor_canvas.height = h * 1.0;
 		
 		var cx = null;
 		var currentTime = 0, lastTime = (new Date()).getTime();
 		var angle = 0;
 		
 		var world = new World();
+
 		
 		world.init_world(editor_canvas.width, editor_canvas.height);
 		init_editor(editor_canvas);
+		
+		window.onresize = function(event) {
+			cx.canvas.width  = window.innerWidth;
+			cx.canvas.height = window.innerHeight;
+			
+		};
 
+		
 		function mainLoop(){
 			currentTime = (new Date()).getTime();
 			var delta = (currentTime - lastTime) / 1000;
@@ -48,18 +59,13 @@
 		
 		if ( (typeof (editor_canvas.getContext) !== undefined)) {
 				cx = editor_canvas.getContext('2d');
+				
+			
 				mainLoop();
 		}
 		
 	</script>
 	
-	<div style="display:none;">
-	<!--<img id="nand" src="images/nand.png" onload="graphics_loaded()">-->
-	<!--<img id="and" src="images/and.png" onload="graphics_loaded()">-->
-	<!--<img id="not" src="images/not.png" onload="graphics_loaded()">-->
-	<!--<img id="nor" src="images/nor.png" onload="graphics_loaded()">-->
-	<!--<img id="xor" src="images/xor.png" onload="graphics_loaded()">-->
-	<!--<img id="or" src="images/or.png" onload="graphics_loaded()">-->
-	</div>
+	
 	</body>
 </html>

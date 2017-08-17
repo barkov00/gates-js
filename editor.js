@@ -118,6 +118,7 @@ function PinBB(left, top, right, bottom, out, parent){
 }
 
 function Wire(p1, p2){
+	this.id = obj_ids++;
 	this.p1 = p1;
 	this.p2 = p2;
 	this.m1 = {x: 0, y: 0};
@@ -127,21 +128,23 @@ function Wire(p1, p2){
 	this.color = "black";
 	this.scissors_hover = false;
 	this.update = function(){
-		if(Math.abs(p1.x - p2.x) > Math.abs(p1.y - p2.y)){
-			var m1x = (p1.x + p2.x) / 2;
+		if(this.p1 == null || this.p2 == null) return;
+		if(Math.abs(this.p1.x - this.p2.x) > Math.abs(this.p1.y - this.p2.y)){
+			var m1x = (this.p1.x + this.p2.x) / 2;
 			this.m1.x = m1x;
-			this.m1.y = p1.y;
+			this.m1.y = this.p1.y;
 			this.m2.x = m1x;
-			this.m2.y = p2.y;
+			this.m2.y = this.p2.y;
 		} else {
-			var m1y = (p1.y + p2.y) / 2;
-			this.m1.x = p1.x;
+			var m1y = (this.p1.y + this.p2.y) / 2;
+			this.m1.x = this.p1.x;
 			this.m1.y = m1y;
-			this.m2.x = p2.x;
+			this.m2.x = this.p2.x;
 			this.m2.y = m1y;
 		}
 	}
 	this.draw = function(cx){
+		if(this.p1 == null || this.p2 == null) return;
 		cx.beginPath();
 		if(this.logic_level == -1) cx.strokeStyle = "black";
 		if(this.logic_level == 1) cx.strokeStyle = "red";
@@ -186,6 +189,7 @@ function Wire(p1, p2){
 //Класс логического элемента
 function LogicObject(name, x, y, width, height){
 	this.id = obj_ids++;
+	this.type = -1;
 	this.name = name;
 	this.rect = createRect();
 	this.pin_bb = [];
@@ -217,7 +221,6 @@ function LogicObject(name, x, y, width, height){
 		//Обновляем координат концов проводов
 		for(var j = 0; j < this.pin_bb.length; j++){
 			var pin = this.pin_bb[j];
-			if(pin.wire_point.length == 0) continue;
 			var rect = this.getPinBounds(j);
 			var c = {x: rect.left, y: (rect.top+rect.bottom)/2};
 			for(var k = 0; k < pin.wire_point.length; k++){
@@ -228,8 +231,8 @@ function LogicObject(name, x, y, width, height){
 	}
 	
 	this.setPosition = function(x, y){
-		x -= this.rect.width / 2;
-		y -= this.rect.height / 2; //x, y - координаты центра элемента
+		//x -= this.rect.width / 2;
+		//y -= this.rect.height / 2; //x, y - координаты центра элемента
 		this.x = x;
 		this.y = y;
 		this.sprite.x = x;
@@ -277,6 +280,7 @@ function LogicObject(name, x, y, width, height){
 			//Меняем лог. уровень у всех кто подключен к этому пину
 			for(var i = 0; i < this.pin_bb[1].wire_point.length; i++) this.pin_bb[1].wire_point[i].wire.setLogicLevel(this.pin_bb[1].logic_level);
 		}
+		this.type = 2;
 	}
 	
 	if(name == "r"){
@@ -287,6 +291,7 @@ function LogicObject(name, x, y, width, height){
 			this.pin_bb[0].logic_level = ed_sensors[1];
 			for(var i = 0; i < this.pin_bb[0].wire_point.length; i++) this.pin_bb[0].wire_point[i].wire.setLogicLevel(this.pin_bb[0].logic_level);
 		}
+		this.type = 6;
 	}
 	
 	if(name == "l"){
@@ -297,6 +302,7 @@ function LogicObject(name, x, y, width, height){
 			this.pin_bb[0].logic_level = ed_sensors[0];
 			for(var i = 0; i < this.pin_bb[0].wire_point.length; i++) this.pin_bb[0].wire_point[i].wire.setLogicLevel(this.pin_bb[0].logic_level);
 		}
+		this.type = 7;
 	}
 	
 	if(name == "b"){
@@ -307,6 +313,7 @@ function LogicObject(name, x, y, width, height){
 			this.pin_bb[0].logic_level = ed_sensors[3];
 			for(var i = 0; i < this.pin_bb[0].wire_point.length; i++) this.pin_bb[0].wire_point[i].wire.setLogicLevel(this.pin_bb[0].logic_level);
 		}
+		this.type = 9;
 	}
 	
 	if(name == "t"){
@@ -317,6 +324,7 @@ function LogicObject(name, x, y, width, height){
 			this.pin_bb[0].logic_level = ed_sensors[2];
 			for(var i = 0; i < this.pin_bb[0].wire_point.length; i++) this.pin_bb[0].wire_point[i].wire.setLogicLevel(this.pin_bb[0].logic_level);
 		}
+		this.type = 8;
 	}
 	
 	if(name == "re"){
@@ -326,6 +334,7 @@ function LogicObject(name, x, y, width, height){
 		this.func = function(){
 			ed_engines[1] = this.pin_bb[0].logic_level;
 		}
+		this.type = 10;
 	}
 	
 	if(name == "le"){
@@ -335,6 +344,7 @@ function LogicObject(name, x, y, width, height){
 		this.func = function(){
 			ed_engines[0] = this.pin_bb[0].logic_level;
 		}
+		this.type = 11;
 	}
 	
 	if(name == "te"){
@@ -344,6 +354,7 @@ function LogicObject(name, x, y, width, height){
 		this.func = function(){
 			ed_engines[2] = this.pin_bb[0].logic_level;
 		}
+		this.type = 12;
 	}
 	
 	if(name == "be"){
@@ -353,6 +364,7 @@ function LogicObject(name, x, y, width, height){
 		this.func = function(){
 			ed_engines[3] = this.pin_bb[0].logic_level;
 		}
+		this.type = 13;
 	}
 	
 	if(name == "and") {
@@ -360,30 +372,35 @@ function LogicObject(name, x, y, width, height){
 			this.pin_bb[2].logic_level = this.pin_bb[0].logic_level * this.pin_bb[1].logic_level;
 			for(var i = 0; i < this.pin_bb[2].wire_point.length; i++) this.pin_bb[2].wire_point[i].wire.setLogicLevel(this.pin_bb[2].logic_level);
 		}
+		this.type = 0;
 	} 
 	if(name == "nand") {
 		this.func = function(){
 			this.pin_bb[2].logic_level = this.pin_bb[0].logic_level * this.pin_bb[1].logic_level == 0 ? 1 : 0;
 			for(var i = 0; i < this.pin_bb[2].wire_point.length; i++) this.pin_bb[2].wire_point[i].wire.setLogicLevel(this.pin_bb[2].logic_level);
 		}
+		this.type = 3;
 	}  
 	if(name == "or") {
 		this.func = function(){
 			this.pin_bb[2].logic_level = (this.pin_bb[0].logic_level == 1 || this.pin_bb[1].logic_level == 1) ? 1 : 0;
 			for(var i = 0; i < this.pin_bb[2].wire_point.length; i++) this.pin_bb[2].wire_point[i].wire.setLogicLevel(this.pin_bb[2].logic_level);
 		}
+		this.type = 1;
 	} 
 	if(name == "xor") {
 		this.func = function(){
 			this.pin_bb[2].logic_level =  (this.pin_bb[0].logic_level == this.pin_bb[1].logic_level) ? 0 : 1;
 			for(var i = 0; i < this.pin_bb[2].wire_point.length; i++) this.pin_bb[2].wire_point[i].wire.setLogicLevel(this.pin_bb[2].logic_level);
 		}
+		this.type = 5;
 	}
 	if(name == "nor") {
 		this.func = function(){
 			this.pin_bb[2].logic_level = (this.pin_bb[0].logic_level == 1 || this.pin_bb[1].logic_level == 1) ? 0 : 1;
 			for(var i = 0; i < this.pin_bb[2].wire_point.length; i++) this.pin_bb[2].wire_point[i].wire.setLogicLevel(this.pin_bb[2].logic_level);
 		}
+		this.type = 4;
 	}
 	
 	this.draw = function(cx){
@@ -436,6 +453,7 @@ function LogicObject(name, x, y, width, height){
 		this.updateWirePosition();
 	}
 	
+	//this.translate(x, y);
 	this.setPosition(x, y);
 };
 //classes -->
@@ -488,19 +506,23 @@ function init_editor(_canvas){
 	collapse_button = new SimpleButton("hide_show_button", canvas.width - 100, 0, 50, 50, graphics["collapse"]);
 	power_button = new SimpleButton("poweron", canvas.width - 170, 0, 50, 50, graphics["poweron"]);
 	
+	place_inputs_outputs();
+	
+	scissors = new StaticObject("scissors", -100, -100, 50, 50);
+	
+	pin_bb_size = elem_height / 5;
+}
+
+function place_inputs_outputs(){
 	objects.push(new LogicObject("r", 35, canvas.height/2 - 100, 50, 50));
 	objects.push(new LogicObject("l", 35, canvas.height/2 - 50, 50, 50));
 	objects.push(new LogicObject("t", 35, canvas.height/2 + 50, 50, 50));
 	objects.push(new LogicObject("b", 35, canvas.height/2 + 100, 50, 50));
 	
-	objects.push(new LogicObject("re", canvas.width - 35, canvas.height/2 - 100, 50, 50));
-	objects.push(new LogicObject("le", canvas.width - 35, canvas.height/2 - 50, 50, 50));
-	objects.push(new LogicObject("te", canvas.width - 35, canvas.height/2 + 50, 50, 50));
-	objects.push(new LogicObject("be", canvas.width - 35, canvas.height/2 + 100, 50, 50));
-	
-	scissors = new StaticObject("scissors", -100, -100, 50, 50);
-	
-	pin_bb_size = elem_height / 5;
+	objects.push(new LogicObject("re", canvas.width - 35 - 50, canvas.height/2 - 100, 50, 50));
+	objects.push(new LogicObject("le", canvas.width - 35 - 50, canvas.height/2 - 50, 50, 50));
+	objects.push(new LogicObject("te", canvas.width - 35 - 50, canvas.height/2 + 50, 50, 50));
+	objects.push(new LogicObject("be", canvas.width - 35 - 50, canvas.height/2 + 100, 50, 50));
 }
 
 function mouse_clicked(){
@@ -535,6 +557,8 @@ function editor_update(dt){
 	
 	if(power_button.hit && clicked){
 		world_instance.reset();
+		//serialize();
+		solve();
 		clicked = false;
 	}
 	
@@ -802,9 +826,170 @@ function game_loop(cx, delta, world){
 		solve();
 		world.world_setEngines(ed_engines);
 		console.log(ed_engines);
-		
 	}
 	
 	editor_update(delta); 
 	editor_draw(cx);
+}
+
+// LZW-compress a string
+function lzw_encode(s) {
+    var dict = {};
+    var data = (s + "").split("");
+    var out = [];
+    var currChar;
+    var phrase = data[0];
+    var code = 256;
+    for (var i=1; i<data.length; i++) {
+        currChar=data[i];
+        if (dict[phrase + currChar] != null) {
+            phrase += currChar;
+        }
+        else {
+            out.push(phrase.length > 1 ? dict[phrase] : phrase.charCodeAt(0));
+            dict[phrase + currChar] = code;
+            code++;
+            phrase=currChar;
+        }
+    }
+    out.push(phrase.length > 1 ? dict[phrase] : phrase.charCodeAt(0));
+    for (var i=0; i<out.length; i++) {
+        out[i] = String.fromCharCode(out[i]);
+    }
+    return out.join("");
+}
+
+// Decompress an LZW-encoded string
+function lzw_decode(s) {
+    var dict = {};
+    var data = (s + "").split("");
+    var currChar = data[0];
+    var oldPhrase = currChar;
+    var out = [currChar];
+    var code = 256;
+    var phrase;
+    for (var i=1; i<data.length; i++) {
+        var currCode = data[i].charCodeAt(0);
+        if (currCode < 256) {
+            phrase = data[i];
+        }
+        else {
+           phrase = dict[currCode] ? dict[currCode] : (oldPhrase + currChar);
+        }
+        out.push(phrase);
+        currChar = phrase.charAt(0);
+        dict[code] = oldPhrase + currChar;
+        code++;
+        oldPhrase = phrase;
+    }
+    return out.join("");
+}
+
+/*
+0 - and
+1 - or
+2 - not
+3 - nand
+4 - nor
+5 - xor
+6 - iR
+7 - iL
+8 - iT
+9 - iB
+10 - eR
+11 - eL
+12 - eT
+13 - eB
+*/
+function serialize(){
+	var circuit = {
+		c: []
+	};
+	
+	for(var i = 0; i < objects.length; i++){
+		var obj = objects[i];
+		var wires = [];
+		
+		for(var j = 0; j < obj.pin_bb.length; j++){
+			for(var k = 0; k < obj.pin_bb[j].wire_point.length; k++){
+				var wp = obj.pin_bb[j].wire_point[k];
+				var conn = {p: j, i: wp.wire.id};
+				wires.push(conn);
+			}
+		}
+		
+		var element = {
+			t: obj.type,
+			i: obj.id,
+			x: obj.x,
+			y: obj.y,
+			w: wires
+		};
+		
+		circuit.c.push(element);
+	}
+	
+	var json = JSON.stringify(circuit);
+
+	
+	json = prompt("Код для загрузки:", json);
+	
+	deserialize(json);
+	solve();
+}
+
+var type2name = ["and", "or", "not", "nand", "nor", "xor", "r", "l", "t", "b", "re", "le", "te", "be"];
+
+function wires_contains(id){
+	for(var i = 0; i < wires.length; i++){
+		if(wires[i].id == id) {
+			
+			return wires[i];
+		}
+	}
+	return null;
+}
+
+function deserialize(json){
+	var json = JSON.parse(json);
+	objects.splice(0, objects.length);
+	wires.splice(0, wires.length);
+	place_inputs_outputs();
+	
+	for(var j = 0; j < json.c.length; j++){
+		var e = json.c[j];
+		var obj = null;
+		
+		if(!(e.t >= 6 && e.t <= 13)){
+			obj = new LogicObject(type2name[e.t], e.x, e.y, elem_width, elem_height);
+			obj.id = e.i;
+		} else {
+			obj = getObjectByName(type2name[e.t]);
+		}
+		
+		for(var i = 0; i < e.w.length; i++){
+				var wire = e.w[i];
+				console.log(wire);
+				var currentWire = wires_contains(wire.i);
+				if(currentWire == null){
+					currentWire = new Wire(null, null);
+					currentWire.id = wire.i;
+					wires.push(currentWire);
+				}
+				var pt = rectCenter(obj.getPinBounds(wire.p));
+				if(currentWire.p1 == null){
+					currentWire.p1 = pt;
+					currentWire.pins[0] = (obj.pin_bb[wire.p]);
+				} else if(currentWire.p2 == null){
+					currentWire.p2 = pt;
+					currentWire.pins[1] = (obj.pin_bb[wire.p]);
+				} else {
+					continue;
+				}
+				
+				pt.wire = currentWire;
+				obj.pin_bb[wire.p].wire_point.push(pt);
+			}
+		}
+		objects.push(obj);
 }

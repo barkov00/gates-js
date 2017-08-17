@@ -141,6 +141,10 @@ function World(){
 	
 	this.reset = function(){
 		this.sensorsLast[0] = -1;
+		this.engines[0] = 0;
+		this.engines[1] = 0;
+		this.engines[2] = 0;
+		this.engines[3] = 0;
 		this.init_world(this.width, this.height);
 	}
 
