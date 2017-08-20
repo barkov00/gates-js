@@ -859,6 +859,11 @@ function solve(){
 		}
 	}
 	
+	getObjectByName("r").func();
+	getObjectByName("l").func();
+	getObjectByName("t").func();
+	getObjectByName("b").func();
+	
 	while(--iterationsMax > 0){
 		var hizDetected = false;
 		for(var i = 0; i < objects.length; i++){
@@ -921,8 +926,6 @@ function game_loop(cx, delta, world){
 	world.world_draw(cx);	
 	
 	if(editor_visible){
-		//cx.fillStyle = "rgba(0,0,0,0.6)";
-		//cx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 		world.alpha = 0.8;
 	} else {
 		world.alpha = 0;
@@ -930,10 +933,9 @@ function game_loop(cx, delta, world){
 	if(world.sensorsChanged()){
 		var sensors = world.world_readSensors();
 		for(var i = 0; i < 4; i++) ed_sensors[i] = sensors[i];
-		
+		console.log(ed_sensors);
 		solve();
 		world.world_setEngines(ed_engines);
-		
 	}
 	
 	editor_update(delta); 
