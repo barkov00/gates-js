@@ -14,8 +14,8 @@ var objects = [];
 var wires = [];
 var obj_ids = 0;
 var pin_bb_size = 0;
-var elem_height = 50;
-var elem_width = 100;
+var elem_height = 50 * 0.7;
+var elem_width = 100 * 0.7;
 var ST_IDLE = 0, ST_DRAG = 1, ST_SEL_PIN = 2, ST_WIRE = 3, ST_CUT_WIRE = 4;
 var editor_state = ST_IDLE;
 var selectedWire = -1;
@@ -24,9 +24,15 @@ var collapse_button = null;
 var power_button = null;
 var editor_visible = true;
 var world_instance = null;
+var WORLD_WIDTH = 1280;
+var WORLD_HEIGHT = 720;
 
 var ed_sensors = [0, 0, 0, 0]; //R L T B
 var ed_engines = [0, 0, 0, 0]; //R L T B
+
+function editor_resize(){
+	
+}
 
 function editor_reset(){
 	ed_sensors = [0, 0, 0, 0]; //R L T B
@@ -79,7 +85,8 @@ function SimpleButton(_name, x, y, width, height, image){
 	this.hit = false;
 	this.draw = function(cx){
 		cx.drawImage(this.image, this.rect.left, this.rect.top, this.rect.right-this.rect.left, this.rect.bottom-this.rect.top);
-		this.hit = rectContains(this.rect, mouse.x, mouse.y);
+		var m = mouse_project(mouse.x, mouse.y);
+		this.hit = rectContains(this.rect, m.x, m.y);
 		if(this.hit){
 			cx.beginPath();
 			cx.strokeStyle = mouse.pressed == false ? "green" : "lightgreen";
@@ -125,7 +132,7 @@ function Wire(p1, p2){
 	this.m2 = {x: 0, y: 0};
 	this.logic_level = -1;
 	this.pins = [];
-	this.color = "black";
+	this.color = "#00bae4";
 	this.scissors_hover = false;
 	this.update = function(){
 		if(this.p1 == null || this.p2 == null) return;
@@ -146,7 +153,7 @@ function Wire(p1, p2){
 	this.draw = function(cx){
 		if(this.p1 == null || this.p2 == null) return;
 		cx.beginPath();
-		if(this.logic_level == -1) cx.strokeStyle = "black";
+		if(this.logic_level == -1) cx.strokeStyle = "#00bae4";
 		if(this.logic_level == 1) cx.strokeStyle = "red";
 		if(this.logic_level == 0) cx.strokeStyle = "blue";
 		cx.lineWidth = this.scissors_hover ? 4 : 2;
@@ -205,6 +212,8 @@ function LogicObject(name, x, y, width, height){
 	this.original_width = width;
 	this.original_height = height;
 	this.sprite = null;
+	this.draggable = true;
+	this.angle_acc = 0;
 	
 	this.getPinBounds = function(pin_id){
 		var bb = this.pin_bb[pin_id].rect;
@@ -235,8 +244,10 @@ function LogicObject(name, x, y, width, height){
 		//y -= this.rect.height / 2; //x, y - координаты центра элемента
 		this.x = x;
 		this.y = y;
-		this.sprite.x = x;
-		this.sprite.y = y;
+		if(this.sprite != null){
+			this.sprite.x = x;
+			this.sprite.y = y;
+		}
 		this.updateAABB(x, y);
 		this.updateWirePosition();
 	}
@@ -262,10 +273,26 @@ function LogicObject(name, x, y, width, height){
 		this.rect.right = x + this.rect.width;
 	}
 	
+	this.rotate = function(angle){
+		this.angle_acc += angle;
+		this.angle = angle;
+		this.sprite.rotate(angle);
+		var origin = rectCenter(this.rect);
+		var rad = Math.PI * this.angle / 180;
+		var origin_local = {x: origin.x - this.x, y: origin.y - this.y};
+		this.rect = rotateAABBRectangle(this.rect, origin, rad);
+		for(var i = 0; i < this.pin_bb.length; i++){
+			this.pin_bb[i].rect = rotateAABBRectangle(this.pin_bb[i].rect, origin_local, rad);
+		}
+		this.updateWirePosition();
+	}
+	
+	this.setPosition(x, y);
+	
 	if(name == "and" || name == "nand" || name == "or" || name == "xor" || name == "nor"){
-		this.pin_bb.push(new PinBB(0, 15  - pin_bb_size/2, pin_bb_size, 15 + pin_bb_size/2, false, this));
-		this.pin_bb.push(new PinBB(0, 36  - pin_bb_size/2, pin_bb_size, 36 + pin_bb_size/2, false, this));
-		this.pin_bb.push(new PinBB(this.rect.width - pin_bb_size, 25  - pin_bb_size/2, this.rect.width, 25 + pin_bb_size/2, true, this));
+		this.pin_bb.push(new PinBB(0, 9  - pin_bb_size/2, pin_bb_size, 9 + pin_bb_size/2, false, this));
+		this.pin_bb.push(new PinBB(0, 25  - pin_bb_size/2, pin_bb_size, 25 + pin_bb_size/2, false, this));
+		this.pin_bb.push(new PinBB(this.rect.width - pin_bb_size, 17  - pin_bb_size/2, this.rect.width, 17 + pin_bb_size/2, true, this));
 		this.sprite = new Sprite(graphics[this.name], x, y, width, height);
 		//this.sprite.origin_offset.x = 5;
 	} 
@@ -273,8 +300,8 @@ function LogicObject(name, x, y, width, height){
 	if(name == "not"){
 		this.sprite = new Sprite(graphics[this.name], x, y, width, height);
 		//this.sprite.origin_offset.x = 5;
-		this.pin_bb.push(new PinBB(0, 25  - pin_bb_size/2, pin_bb_size, 25 + pin_bb_size/2, false, this));
-		this.pin_bb.push(new PinBB(this.rect.width - pin_bb_size, 25  - pin_bb_size/2, this.rect.width, 25 + pin_bb_size/2, true, this));
+		this.pin_bb.push(new PinBB(0, 17  - pin_bb_size/2, pin_bb_size, 17 + pin_bb_size/2, false, this));
+		this.pin_bb.push(new PinBB(this.rect.width - pin_bb_size, 17  - pin_bb_size/2, this.rect.width, 17 + pin_bb_size/2, true, this));
 		this.func = function(){
 			this.pin_bb[1].logic_level = (this.pin_bb[0].logic_level == 0 ? 1 : 0);
 			//Меняем лог. уровень у всех кто подключен к этому пину
@@ -285,86 +312,104 @@ function LogicObject(name, x, y, width, height){
 	
 	if(name == "r"){
 		this.sprite = new Sprite(graphics[this.name], x, y, width, height);
-		this.pin_bb.push(new PinBB(35, 15, 50, this.rect.height / 2 + 10, true, this));
+		this.pin_bb.push(new PinBB(this.rect.width/2 - 10, this.rect.height - 10, this.rect.width/2 + 10, this.rect.height + 10, false, this));
 		this.can_delete = false;
 		this.func = function(){
 			this.pin_bb[0].logic_level = ed_sensors[1];
 			for(var i = 0; i < this.pin_bb[0].wire_point.length; i++) this.pin_bb[0].wire_point[i].wire.setLogicLevel(this.pin_bb[0].logic_level);
 		}
 		this.type = 6;
+		this.draggable = false;
+		this.rotate(90);
 	}
 	
 	if(name == "l"){
 		this.sprite = new Sprite(graphics[this.name], x, y, width, height);
-		this.pin_bb.push(new PinBB(35, 15, 50, this.rect.height / 2 + 10, true, this));
+		this.pin_bb.push(new PinBB(this.rect.width/2 - 10, this.rect.height - 10, this.rect.width/2 + 10, this.rect.height + 10, false, this));
 		this.can_delete = false;
 		this.func = function(){
 			this.pin_bb[0].logic_level = ed_sensors[0];
 			for(var i = 0; i < this.pin_bb[0].wire_point.length; i++) this.pin_bb[0].wire_point[i].wire.setLogicLevel(this.pin_bb[0].logic_level);
 		}
 		this.type = 7;
+		this.draggable = false;
+		this.rotate(90 * 3);
 	}
 	
 	if(name == "b"){
 		this.sprite = new Sprite(graphics[this.name], x, y, width, height);
-		this.pin_bb.push(new PinBB(35, 15, 50, this.rect.height / 2 + 10, true, this));
+		this.pin_bb.push(new PinBB(this.rect.width/2 - 10, this.rect.height - 10, this.rect.width/2 + 10, this.rect.height + 10, false, this));
 		this.can_delete = false;
 		this.func = function(){
 			this.pin_bb[0].logic_level = ed_sensors[3];
 			for(var i = 0; i < this.pin_bb[0].wire_point.length; i++) this.pin_bb[0].wire_point[i].wire.setLogicLevel(this.pin_bb[0].logic_level);
 		}
 		this.type = 9;
+		this.draggable = false;
+		this.rotate(90 * 2);
 	}
 	
 	if(name == "t"){
 		this.sprite = new Sprite(graphics[this.name], x, y, width, height);
-		this.pin_bb.push(new PinBB(35, 15, 50, this.rect.height / 2 + 10, true, this));
+		this.pin_bb.push(new PinBB(this.rect.width/2 - 10, this.rect.height - 10, this.rect.width/2 + 10, this.rect.height + 10, false, this));
 		this.can_delete = false;
 		this.func = function(){
 			this.pin_bb[0].logic_level = ed_sensors[2];
 			for(var i = 0; i < this.pin_bb[0].wire_point.length; i++) this.pin_bb[0].wire_point[i].wire.setLogicLevel(this.pin_bb[0].logic_level);
 		}
 		this.type = 8;
+		this.draggable = false;
 	}
 	
 	if(name == "re"){
 		this.sprite = new Sprite(graphics[this.name], x, y, width, height);
-		this.pin_bb.push(new PinBB(0, 15, 16, this.rect.height / 2 + 10, false, this));
+		//this.pin_bb.push(new PinBB(0, 15, 16, this.rect.height / 2 + 10, false, this));
+		this.pin_bb.push(new PinBB(this.rect.width/2 - 10, this.rect.height - 10, this.rect.width/2 + 10, this.rect.height + 10, false, this));
 		this.can_delete = false;
 		this.func = function(){
 			ed_engines[1] = this.pin_bb[0].logic_level;
 		}
 		this.type = 10;
+		this.draggable = false;
+		this.rotate(90);
 	}
 	
 	if(name == "le"){
 		this.sprite = new Sprite(graphics[this.name], x, y, width, height);
-		this.pin_bb.push(new PinBB(0, 15, 16, this.rect.height / 2 + 10, false, this));
+		//this.pin_bb.push(new PinBB(0, 15, 16, this.rect.height / 2 + 10, false, this));
+		this.pin_bb.push(new PinBB(this.rect.width/2 - 10, this.rect.height - 10, this.rect.width/2 + 10, this.rect.height + 10, false, this));
 		this.can_delete = false;
 		this.func = function(){
 			ed_engines[0] = this.pin_bb[0].logic_level;
 		}
 		this.type = 11;
+		this.draggable = false;
+		this.rotate(90 * 3);
 	}
 	
 	if(name == "te"){
 		this.sprite = new Sprite(graphics[this.name], x, y, width, height);
-		this.pin_bb.push(new PinBB(0, 15, 16, this.rect.height / 2 + 10, false, this));
+		//this.pin_bb.push(new PinBB(0, 15, 16, this.rect.height / 2 + 10, false, this));
+		this.pin_bb.push(new PinBB(this.rect.width/2 - 10, this.rect.height - 10, this.rect.width/2 + 10, this.rect.height + 10, false, this));
 		this.can_delete = false;
 		this.func = function(){
 			ed_engines[2] = this.pin_bb[0].logic_level;
 		}
 		this.type = 12;
+		this.draggable = false;
 	}
 	
 	if(name == "be"){
 		this.sprite = new Sprite(graphics[this.name], x, y, width, height);
-		this.pin_bb.push(new PinBB(0, 15, 16, this.rect.height / 2 + 10, false, this));
+		//this.pin_bb.push(new PinBB(0, 15, 16, this.rect.height / 2 + 10, false, this));
+		this.pin_bb.push(new PinBB(this.rect.width/2 - 10, this.rect.height - 10, this.rect.width/2 + 10, this.rect.height + 10, false, this));
 		this.can_delete = false;
 		this.func = function(){
 			ed_engines[3] = this.pin_bb[0].logic_level;
 		}
 		this.type = 13;
+		this.draggable = false;
+		this.rotate(90 * 2);
 	}
 	
 	if(name == "and") {
@@ -405,61 +450,74 @@ function LogicObject(name, x, y, width, height){
 	
 	this.draw = function(cx){
 		this.sprite.draw(cx);
-		if(this.hover){
+		if(this.hover && this.draggable){
 			cx.beginPath();
-			cx.strokeStyle = this.aabb_stroke_color;
+			cx.strokeStyle = "#00bae4";
+			/*
 			cx.moveTo(this.rect.left, this.rect.top);
 			cx.lineTo(this.rect.right, this.rect.top);
 			cx.lineTo(this.rect.right, this.rect.bottom);
 			cx.lineTo(this.rect.left, this.rect.bottom);
 			cx.lineTo(this.rect.left, this.rect.top);
+			*/
+			var ln = 5;
+			cx.moveTo(this.rect.left, this.rect.top);
+			cx.lineTo(this.rect.left - ln, this.rect.top - ln);
+			cx.moveTo(this.rect.right, this.rect.top);
+			cx.lineTo(this.rect.right + ln, this.rect.top - ln);
+			cx.moveTo(this.rect.right, this.rect.bottom);
+			cx.lineTo(this.rect.right + ln, this.rect.bottom + ln);
+			cx.moveTo(this.rect.left, this.rect.bottom);
+			cx.lineTo(this.rect.left - ln, this.rect.bottom + ln);
+			
 			cx.stroke();
 			cx.closePath();
 		}
 		for(var j = 0; j < this.pin_bb.length; j++){
 			var rect = this.getPinBounds(j);
-			cx.lineWidth = this.pin_bb[j].hover ? 4 : 2;
+			cx.lineWidth = this.pin_bb[j].hover ? 2 : 1;
 			//cx.strokeStyle = this.pin_bb[j].hover ? "red" : "cyan";
 			cx.strokeStyle = this.pin_bb[j].hover ? "red" : "cyan";
-			if(this.pin_bb[j].logic_level == -1) cx.strokeStyle = "black";
+			if(this.pin_bb[j].logic_level == -1) cx.strokeStyle = "white";
 			if(this.pin_bb[j].logic_level == 1) cx.strokeStyle = "red";
 			if(this.pin_bb[j].logic_level == 0) cx.strokeStyle = "blue";
-			cx.beginPath();
 			
-			
+			/*
 			cx.moveTo(rect.left, rect.top);
 			cx.lineTo(rect.right, rect.top);
 			cx.lineTo(rect.right, rect.bottom);
 			cx.lineTo(rect.left, rect.bottom);
 			cx.lineTo(rect.left, rect.top);
-			cx.stroke();
-			cx.closePath();
-			
+			*/
+			//if(this.pin_bb[j].wire_point.length == 0){
+				var c = rectCenter(rect);
+				cx.beginPath();
+				cx.arc(c.x, c.y, 4, 0, 2 * Math.PI);
+				cx.stroke();
+				cx.closePath();
+			//}
 		} 
 		cx.lineWidth = 2;
 		cx.strokeStyle = "black";
 	}
 	
-	this.rotate = function(angle){
-		this.angle = angle;
-		this.sprite.rotate(angle);
-		var origin = rectCenter(this.rect);
-		var rad = Math.PI * this.angle / 180;
-		var origin_local = {x: origin.x - this.x, y: origin.y - this.y};
-		this.rect = rotateAABBRectangle(this.rect, origin, rad);
-		for(var i = 0; i < this.pin_bb.length; i++){
-			this.pin_bb[i].rect = rotateAABBRectangle(this.pin_bb[i].rect, origin_local, rad);
-		}
-		this.updateWirePosition();
-	}
+	this.setPosition(x, y);
 	
 	//this.translate(x, y);
-	this.setPosition(x, y);
+	
 };
 //classes -->
 
-function init_editor(_canvas){
+
+var setCode;
+var getCode;
+
+function init_editor(_canvas, _setCode, _getCode){
 	canvas = _canvas;
+	setCode = _setCode;
+	getCode = _getCode;
+	
+	setCode("");
 	
 	canvas.addEventListener('mousemove', function(evt) {
 		var rect = canvas.getBoundingClientRect();
@@ -477,52 +535,64 @@ function init_editor(_canvas){
 		mouse.pressed = false;
       }, false);
 	  
-	load_image("and", "images/and.png");
-	load_image("or", "images/or.png");
-	load_image("not", "images/not.png");
-	load_image("nand", "images/nand.png");
-	load_image("nor", "images/nor.png");
-	load_image("xor", "images/xor.png");
+	load_image("and", "images/and_dark.png");
+	load_image("or", "images/or_dark.png");
+	load_image("not", "images/not_dark.png");
+	load_image("nand", "images/nand_dark.png");
+	load_image("nor", "images/nor_dark.png");
+	load_image("xor", "images/xor_dark.png");
 	load_image("scissors", "images/scissors.png");
-	load_image("r", "images/r.png");
-	load_image("l", "images/l.png");
-	load_image("t", "images/t.png");
-	load_image("b", "images/b.png");
-	load_image("re", "images/re.png");
-	load_image("le", "images/le.png");
-	load_image("te", "images/te.png");
-	load_image("be", "images/be.png");
+	
+	load_image("sensor", "images/sensor.png");
+	load_image("engine", "images/engine.png");
+	graphics["l"] = graphics["sensor"];
+	graphics["r"] = graphics["sensor"];
+	graphics["t"] = graphics["sensor"];
+	graphics["b"] = graphics["sensor"];
+	graphics["le"] = graphics["engine"];
+	graphics["re"] = graphics["engine"];
+	graphics["te"] = graphics["engine"];
+	graphics["be"] = graphics["engine"];
+
 	load_image("collapse", "images/collapse-button.png");
 	load_image("expand", "images/expand-button.png");
 	load_image("poweron", "images/poweron_button.png");
 	
-	toolbar_btns.push(new SimpleButton("and", 0, 0, 100, 50, graphics["and"]));
-	toolbar_btns.push(new SimpleButton("or", 100, 0, 100, 50, graphics["or"]));
-	toolbar_btns.push(new SimpleButton("not", 200, 0, 100, 50, graphics["not"]));
-	toolbar_btns.push(new SimpleButton("nand", 300, 0, 100, 50, graphics["nand"]));
-	toolbar_btns.push(new SimpleButton("nor", 400, 0, 100, 50, graphics["nor"]));
-	toolbar_btns.push(new SimpleButton("xor", 500, 0, 100, 50, graphics["xor"]));
-	toolbar_btns.push(new SimpleButton("scissors", 600, 0, 50, 50, graphics["scissors"]));
-	collapse_button = new SimpleButton("hide_show_button", canvas.width - 100, 0, 50, 50, graphics["collapse"]);
-	power_button = new SimpleButton("poweron", canvas.width - 170, 0, 50, 50, graphics["poweron"]);
+	var btn_width = 100 * 0.7;
+	var btn_height = 50 * 0.7;
+	
+	toolbar_btns.push(new SimpleButton("and", 0, 0, btn_width, btn_height, graphics["and"]));
+	toolbar_btns.push(new SimpleButton("or", btn_width, 0, btn_width, btn_height, graphics["or"]));
+	toolbar_btns.push(new SimpleButton("not", btn_width*2, 0, btn_width, btn_height, graphics["not"]));
+	toolbar_btns.push(new SimpleButton("nand", btn_width*3, 0, btn_width, btn_height, graphics["nand"]));
+	toolbar_btns.push(new SimpleButton("nor", btn_width*4, 0, btn_width, btn_height, graphics["nor"]));
+	toolbar_btns.push(new SimpleButton("xor", btn_width*5, 0, btn_width, btn_height, graphics["xor"]));
+	toolbar_btns.push(new SimpleButton("scissors", btn_width*6, 0, btn_height, btn_height, graphics["scissors"]));
+	collapse_button = new SimpleButton("hide_show_button", WORLD_WIDTH - btn_width, 0, btn_height, btn_height, graphics["collapse"]);
+	power_button = new SimpleButton("poweron", WORLD_WIDTH - btn_width * 2, 0, btn_height, btn_height, graphics["poweron"]);
 	
 	place_inputs_outputs();
 	
-	scissors = new StaticObject("scissors", -100, -100, 50, 50);
+	scissors = new StaticObject("scissors", -100, -100, 50 * 0.7, 50 * 0.7);
 	
 	pin_bb_size = elem_height / 5;
 }
 
 function place_inputs_outputs(){
-	objects.push(new LogicObject("r", 35, canvas.height/2 - 100, 50, 50));
-	objects.push(new LogicObject("l", 35, canvas.height/2 - 50, 50, 50));
-	objects.push(new LogicObject("t", 35, canvas.height/2 + 50, 50, 50));
-	objects.push(new LogicObject("b", 35, canvas.height/2 + 100, 50, 50));
+	var width = 50 * 0.7;
+	var height = 50 * 0.7;
 	
-	objects.push(new LogicObject("re", canvas.width - 35 - 50, canvas.height/2 - 100, 50, 50));
-	objects.push(new LogicObject("le", canvas.width - 35 - 50, canvas.height/2 - 50, 50, 50));
-	objects.push(new LogicObject("te", canvas.width - 35 - 50, canvas.height/2 + 50, 50, 50));
-	objects.push(new LogicObject("be", canvas.width - 35 - 50, canvas.height/2 + 100, 50, 50));
+	objects.push(new LogicObject("l", 35, WORLD_HEIGHT/2 - 100, width, height));
+	objects.push(new LogicObject("le", 35, WORLD_HEIGHT/2 - 50, width, height));
+	
+	objects.push(new LogicObject("re", WORLD_WIDTH - 35 - 50, WORLD_HEIGHT/2 - 100, width, height));
+	objects.push(new LogicObject("r", WORLD_WIDTH - 35 - 50, WORLD_HEIGHT/2 - 50, width, height));
+	
+	objects.push(new LogicObject("te", WORLD_WIDTH/2 - 25, 65, width, height));
+	objects.push(new LogicObject("t", WORLD_WIDTH/2 + 25, 65, width, height));
+	
+	objects.push(new LogicObject("be", WORLD_WIDTH/2 - 25, WORLD_HEIGHT-65, width, height));
+	objects.push(new LogicObject("b", WORLD_WIDTH/2 + 25, WORLD_HEIGHT-65, width, height));
 }
 
 function mouse_clicked(){
@@ -544,6 +614,9 @@ function editor_update(dt){
 	var right_click = mouse_btn_code == 2;
 	var wheel_click = mouse_btn_code == 1;
 
+	var mousepos = mouse_project(mouse.x, mouse.y);
+
+	
 	if(collapse_button.hit && clicked){
 		if(editor_visible){
 			editor_visible = false;
@@ -557,18 +630,19 @@ function editor_update(dt){
 	
 	if(power_button.hit && clicked){
 		world_instance.reset();
-		//serialize();
+		serialize();
 		solve();
 		clicked = false;
 	}
 	
 	if(!editor_visible) return;
 	
+	
 	//Обработка нажатия на кнопки редактора
 	if(editor_state == ST_IDLE)
 	{
 		for(var i = 0; i < toolbar_btns.length; i++) {
-			//var hover = rectContains(toolbar_btns[i].rect, mouse.x, mouse.y);
+			//var hover = rectContains(toolbar_btns[i].rect, mousepos.x, mousepos.y);
 			//toolbar_btns[i].hover = hover;
 			var hover = toolbar_btns[i].hit;
 			var button = toolbar_btns[i];
@@ -597,7 +671,7 @@ function editor_update(dt){
 	
 	for(var i = 0; i < objects.length; i++){
 		var obj = objects[i];
-		if(obj.drag && clicked && (editor_state == ST_DRAG) && mouse.y > toolbar_height * 1.5){ 
+		if(obj.drag && clicked && (editor_state == ST_DRAG) && mousepos.y > toolbar_height * 1.5){ 
 			//заканчиваем перетаскивание, оставляем объект там где юзер кликнул
 			objects[i].drag = false;
 			editor_state = ST_IDLE;
@@ -626,15 +700,15 @@ function editor_update(dt){
 		
 		if(objects[i].drag){	
 			//Обработка перетаскивания объекта - привязываем объект к курсору мыши во время перетаскивания
-			obj.translate(mouse.x - obj.rect.left - obj.rect.width / 2, mouse.y - obj.rect.top - obj.rect.height / 2);
+			obj.translate(mousepos.x - obj.rect.left - obj.rect.width / 2, mousepos.y - obj.rect.top - obj.rect.height / 2);
 		} else {	
-			var obj_hit =  rectContains(obj.rect, mouse.x, mouse.y);
+			var obj_hit =  rectContains(obj.rect, mousepos.x, mousepos.y);
 			objects[i].hover = obj_hit;
 			
 			if(right_click & obj_hit){
 				obj.rotate(90);
 				right_click = false;
-				console.log("rotate");
+				
 			}
 		
 			if(!(editor_state == ST_IDLE || editor_state == ST_WIRE)) 
@@ -645,13 +719,14 @@ function editor_update(dt){
 			for(var j = 0; j < obj.pin_bb.length; j++){
 				var pin = obj.pin_bb[j];
 				var rect = obj.getPinBounds(j);
-				var hover = rectContains(rect, mouse.x, mouse.y);
+				var hover = rectContains(rect, mousepos.x, mousepos.y);
 				if(hover) {
 					pin_selected = true;
 					if(clicked && (editor_state != ST_WIRE)){
 						//Клик по пину
-						selectedWire = new Wire(rectCenter(rect), {x: mouse.x, y: mouse.y});
+						selectedWire = new Wire(rectCenter(rect), {x: mousepos.x, y: mousepos.y});
 						selectedWire.pins[0] = pin;
+						selectedWire.p1 = rectCenter(rect);
 						var st = selectedWire.p1;
 						st.wire = selectedWire;
 						pin.wire_point.push(st);
@@ -668,6 +743,7 @@ function editor_update(dt){
 						if(pin.out && selectedWire.pins[0].out) 
 							continue; 
 						selectedWire.pins[1] = pin;
+						selectedWire.p2 = rectCenter(rect);
 						var st = selectedWire.p2;
 						st.wire = selectedWire;
 						pin.wire_point.push(st);
@@ -681,7 +757,7 @@ function editor_update(dt){
 			
 			objects[i].aabb_stroke_color = (clicked && obj_hit) ? "lightgreen" : "green";
 			
-			if(!pin_selected && obj_hit && clicked && (editor_state == ST_IDLE)){
+			if(!pin_selected && obj_hit && clicked && (editor_state == ST_IDLE) && obj.draggable){
 				objects[i].drag = true;
 				editor_state = ST_DRAG; //начало перетаскивания объекта
 				continue;
@@ -690,13 +766,13 @@ function editor_update(dt){
 	} 
 	
 	if(editor_state == ST_WIRE){
-		selectedWire.p2.x = mouse.x;
-		selectedWire.p2.y = mouse.y;
+		selectedWire.p2.x = mousepos.x;
+		selectedWire.p2.y = mousepos.y;
 	}
 	
 	if(editor_state == ST_CUT_WIRE){
-		scissors.rect.left = mouse.x - scissors.rect.width/2;
-		scissors.rect.top = mouse.y - scissors.rect.height/2;
+		scissors.rect.left = mousepos.x - scissors.rect.width/2;
+		scissors.rect.top = mousepos.y - scissors.rect.height/2;
 		scissors.rect.bottom = scissors.rect.top + scissors.rect.height;
 		scissors.rect.right = scissors.rect.left + scissors.rect.width;
 		if(right_click){
@@ -810,26 +886,60 @@ function solve(){
 	}
 }
 
+var trX, trY, scaleX, scaleY;
+
+function mouse_project(x, y){
+	return {x: (x - trX) * (1/scaleX), y:(y - trY) * (1/scaleY)};
+}
+
 function game_loop(cx, delta, world){
-	world_instance = world;
+	if(world_instance == null){
+		world_instance = world;
+		world_instance.init_world(0, WORLD_WIDTH, WORLD_HEIGHT);
+	}
+	
+	var W = cx.canvas.clientWidth;
+	var H = cx.canvas.clientHeight;
+	var hn = H;
+
+	wn = H * (WORLD_WIDTH / WORLD_HEIGHT);
+	if(W < wn){
+		hn = W * (WORLD_HEIGHT / WORLD_WIDTH);
+		wn = W;
+	}
+	
+	trX = W / 2 - wn / 2;
+	trY = H / 2 - hn / 2;
+	scaleX = wn / WORLD_WIDTH;
+	scaleY = hn / WORLD_HEIGHT;
+	
+	cx.save();
+	cx.translate(trX, trY);
+	cx.scale(scaleX, scaleY);
 	
 	world.world_update(delta); 
 	world.world_draw(cx);	
+	
 	if(editor_visible){
-		cx.fillStyle = "rgba(255,255,255,0.9)";
-		cx.fillRect(0, 0, cx.canvas.clientWidth, cx.canvas.clientHeight);
+		//cx.fillStyle = "rgba(0,0,0,0.6)";
+		//cx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+		world.alpha = 0.8;
+	} else {
+		world.alpha = 0;
 	}
 	if(world.sensorsChanged()){
 		var sensors = world.world_readSensors();
 		for(var i = 0; i < 4; i++) ed_sensors[i] = sensors[i];
-		//console.log(ed_sensors);
+		
 		solve();
 		world.world_setEngines(ed_engines);
-		console.log(ed_engines);
+		
 	}
 	
 	editor_update(delta); 
 	editor_draw(cx);
+	
+	cx.restore();
 }
 
 // LZW-compress a string
@@ -903,7 +1013,8 @@ function lzw_decode(s) {
 */
 function serialize(){
 	var circuit = {
-		c: []
+		c: [],
+		level: world_instance.level_name
 	};
 	
 	for(var i = 0; i < objects.length; i++){
@@ -923,19 +1034,23 @@ function serialize(){
 			i: obj.id,
 			x: obj.x,
 			y: obj.y,
+			a: obj.angle_acc,
 			w: wires
 		};
 		
 		circuit.c.push(element);
 	}
 	
+	//level_id # obj.type obj.id obj.x obj.y @@ pin wire_id pin wire_id 
+	
 	var json = JSON.stringify(circuit);
 
+	setCode(json);
 	
-	json = prompt("Код для загрузки:", json);
+	//json = prompt("Код для загрузки:", json);
 	
-	deserialize(json);
-	solve();
+	//deserialize(json);
+	//solve();
 }
 
 var type2name = ["and", "or", "not", "nand", "nor", "xor", "r", "l", "t", "b", "re", "le", "te", "be"];
@@ -963,13 +1078,14 @@ function deserialize(json){
 		if(!(e.t >= 6 && e.t <= 13)){
 			obj = new LogicObject(type2name[e.t], e.x, e.y, elem_width, elem_height);
 			obj.id = e.i;
+			obj.rotate(e.a);
 		} else {
 			obj = getObjectByName(type2name[e.t]);
 		}
 		
 		for(var i = 0; i < e.w.length; i++){
 				var wire = e.w[i];
-				console.log(wire);
+				
 				var currentWire = wires_contains(wire.i);
 				if(currentWire == null){
 					currentWire = new Wire(null, null);
@@ -992,4 +1108,6 @@ function deserialize(json){
 			}
 		}
 		objects.push(obj);
+		
+		world_instance.init_world(json.level, WORLD_WIDTH, WORLD_HEIGHT);
 }

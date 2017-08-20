@@ -1,19 +1,50 @@
 ﻿<!doctype html>
+<!-- 021B21 032C36 065F73 E8DFD6 FF2A1D-->
 <html>
 	<head>
 		<title></title>
         <meta charset='utf-8' />
 	</head>
 	<style>
+	
 	html, body {
 		background-color: #021B21;
 		margin: 0;
 		width:  100%;
 		height: 100%;
 	}
+	.input_block {
+		position:relative;
+		text-shadow: 1px 1px #065F73;
+		font-size: 12pt;
+		font-family: Verdana;
+		color: #E8DFD6;
+		width: 100%;
+	}
+	.input_style {
+		font-size: 12pt;
+		font-family: Verdana;
+		color: #065F73;
+		width: auto;
+	}
+	.button_style {
+		font-size: 12pt;
+		font-family: Verdana;
+		color: #065F73;
+	}
 	</style>
 	<body>
+	
+	<div class="input_block">
 	<canvas  id='editor'>Обновите браузер</canvas>
+		<div style="position: absolute; left: 1vw; bottom: 1vh;">
+			<!-- <div style="display: inline-block;">Ваш код для сохрания игры:</div> -->
+			<!-- <input value="123" style="display: inline-block;"/> -->
+			<p>
+			Код для сохранения и загрузки игры: <input value="123" class="input_style" id="code" onclick="this.select();"/><input type="button" value="Загрузить" id="load_btn" class="button_style"/>
+			</p>
+		</div>
+	</div>
 	<script type="text/javascript" src="utils.js"></script>
 	<script type="text/javascript" src="world_class.js"></script>
 	<script type="text/javascript" src="editor.js"></script>
@@ -37,9 +68,19 @@
 		
 		var world = new World();
 
+		function setCode(code){
+			document.getElementById("code").value = code;
+		}
+
+		function getCode(){
+			return document.getElementById("code").value;
+		}			
 		
-		world.init_world(editor_canvas.width, editor_canvas.height);
-		init_editor(editor_canvas);
+		document.getElementById("load_btn").onclick = function(){
+			deserialize(document.getElementById("code").value);
+		}
+		
+		init_editor(editor_canvas, setCode, getCode);
 		
 		window.onresize = function(event) {
 			cx.canvas.width  = window.innerWidth;

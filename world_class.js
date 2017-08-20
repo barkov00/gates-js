@@ -7,6 +7,8 @@
 3 - brick
 */
 
+
+
 var level1 = [ 
 	[3, 3, 3, 3, 3, 3, 3, 3, 3, 3], 
 	[3, 1, 0, 0, 0, 3, 3, 3, 3, 3], 
@@ -20,6 +22,9 @@ var level1 = [
 	[3, 3, 3, 3, 3, 3, 3, 3, 3, 3] 	
 ];
 
+var levels = Array();
+
+
 function getCellBB(i, j, cell_size){
 	var bb = {
 		left: j * cell_size,
@@ -31,6 +36,9 @@ function getCellBB(i, j, cell_size){
 }
 
 function World(){
+	levels[0] = level1;
+	
+	
 	var EMPTY = 0, BRICK = 3;
 	var LFT = 0, RGT = 1, TOP = 2, BTM = 3;
 	this.width = 0;
@@ -40,7 +48,8 @@ function World(){
 	this.colliders = [];
 	this.matrix_width = 0;
 	this.matrix_height = 0;
-	this.level = level1;
+	this.level = null;
+	this.level_name = 0;
 	this.cell_colors = ["white", "gray", "green", "brown"];
 	this.cell_size = 32;
 	this.speed_x = 120;
@@ -61,6 +70,7 @@ function World(){
 		{ left:   0, top:    0, right:  0, bottom: 0}
 	];	
 	this.player_bb = {left: 0, top: 0, right: 0, bottom: 0, intersects: 0};
+	this.alpha = 0;
 	
 	this.world_readSensors = function(){
 		return this.sensors;
@@ -110,8 +120,10 @@ function World(){
 		}
 	}
 	
-	this.init_world = function(width, height){
+	this.init_world = function(level_name, width, height){
 		//this.cell_size = width / this.matrix_size;
+		this.level_name = level_name;
+		this.level = levels[level_name];
 		this.width = width;
 		this.height = height;
 		this.sensorsLast = [-1, -1, -1, -1];
@@ -145,7 +157,7 @@ function World(){
 		this.engines[1] = 0;
 		this.engines[2] = 0;
 		this.engines[3] = 0;
-		this.init_world(this.width, this.height);
+		this.init_world(this.level_name, this.width, this.height);
 	}
 
 	this.world_update = function(dt){
@@ -217,8 +229,8 @@ function World(){
 	}
 	
 	this.world_draw = function(cx){
-		var width = cx.canvas.clientWidth;
-		var height = cx.canvas.clientHeight;
+		var width = this.width;
+		var height = this.height;
 			
 	    cx.save();
 		cx.translate(width/2 - this.matrix_width*this.cell_size/2, height/2 - this.matrix_height*this.cell_size/2);
@@ -253,6 +265,8 @@ function World(){
 		cx.rect(this.player_bb.left - 1, this.player_bb.top - 1, this.robot_size, this.robot_size);
 		cx.fill();
 		cx.closePath();
+		
+		
 			
 		if(this.draw_sensors){
 			for(var i = 0; i < 4; i++){
@@ -264,6 +278,9 @@ function World(){
 				cx.closePath();
 			}	
 		}
+		
+		cx.fillStyle = "rgba(0,0,0," + this.alpha + ")";
+		cx.fillRect(0, 0, this.matrix_width * this.cell_size, this.matrix_height * this.cell_size);
 		
 		cx.restore();
 	}
