@@ -1139,6 +1139,12 @@ function select_level_screen(cx, delta){
 			cx.fillText(levels[level_num].summary, x + block_width / 2, y + block_height / 2 + 25);
 		}
 	}
+	
+	cx.textAlign = "left"; 
+	cx.fillStyle = description_color;
+	cx.fillText("Управление: 	Клик ЛКМ - начать перетаскивать элемент или подключить провод к элементу", 50, WORLD_HEIGHT/2 + 100);
+	cx.fillText("Клик ПКМ по элементу - вращать элемент на 90 градусов", 50, WORLD_HEIGHT/2 + 125);
+	cx.fillText("Клик ПКМ при перетаскивании провода - отмена и удаление провода", 50, WORLD_HEIGHT/2 + 150);
 }
 
 function gameover_screen(cx, delta){
@@ -1208,6 +1214,9 @@ function game_win_screen(cx, delta){
 			cx.fill();
 			cx.fillStyle = "#021B21";
 			if(clicked){
+				objects = Array();
+				wires = Array();
+				place_inputs_outputs();
 				load_level(next_level, true);
 				game_state = ST_PLAY;
 			}
