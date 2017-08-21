@@ -1,30 +1,5 @@
 /*'use strict'; */
 
-/*
-0 - empty
-1 - start position
-2 - exit
-3 - brick
-*/
-
-
-
-var level1 = [ 
-	[3, 3, 3, 3, 3, 3, 3, 3, 3, 3], 
-	[3, 1, 0, 0, 0, 3, 3, 3, 3, 3], 
-	[3, 0, 0, 0, 0, 3, 0, 0, 0, 3], 
-	[3, 0, 0, 0, 0, 3, 0, 0, 0, 3], 
-	[3, 0, 0, 0, 0, 3, 0, 0, 0, 3], 
-	[3, 0, 0, 0, 0, 3, 0, 2, 0, 3], 
-	[3, 0, 0, 0, 0, 3, 3, 3, 0, 3], 
-	[3, 0, 0, 0, 0, 0, 0, 0, 0, 3], 
-	[3, 0, 0, 0, 0, 0, 0, 0, 0, 3],
-	[3, 3, 3, 3, 3, 3, 3, 3, 3, 3] 	
-];
-
-var levels = Array();
-
-
 function getCellBB(i, j, cell_size){
 	var bb = {
 		left: j * cell_size,
@@ -36,10 +11,7 @@ function getCellBB(i, j, cell_size){
 }
 
 function World(){
-	levels[0] = level1;
-	
-	
-	var EMPTY = 0, BRICK = 3;
+	var EMPTY = 0, BRICK = 3, BLACK_HOLE = 4, ESCAPE = 2;
 	var LFT = 0, RGT = 1, TOP = 2, BTM = 3;
 	this.width = 0;
 	this.height = 0;
@@ -50,7 +22,7 @@ function World(){
 	this.matrix_height = 0;
 	this.level = null;
 	this.level_name = 0;
-	this.cell_colors = ["white", "gray", "green", "brown"];
+	this.cell_colors = ["white", "white", "green", "brown", "black"];
 	this.cell_size = 32;
 	this.speed_x = 120;
 	this.speed_y = 120;
@@ -71,6 +43,8 @@ function World(){
 	];	
 	this.player_bb = {left: 0, top: 0, right: 0, bottom: 0, intersects: 0};
 	this.alpha = 0;
+	this.robot_out = false;
+	this.robot_finish = false;
 	
 	this.world_readSensors = function(){
 		return this.sensors;
@@ -120,10 +94,18 @@ function World(){
 		}
 	}
 	
-	this.init_world = function(level_name, width, height){
+	this.init_world = function(level_object, width, height){
 		//this.cell_size = width / this.matrix_size;
-		this.level_name = level_name;
-		this.level = levels[level_name];
+		this.sensorsLast[0] = -1;
+		this.engines[0] = 0;
+		this.engines[1] = 0;
+		this.engines[2] = 0;
+		this.engines[3] = 0;
+		this.robot_out = false;
+		this.robot_finish = false;
+		this.colliders = Array();
+		this.level_name = level_object.name;
+		this.level = level_object.matrix;
 		this.width = width;
 		this.height = height;
 		this.sensorsLast = [-1, -1, -1, -1];
@@ -141,7 +123,7 @@ function World(){
 					this.player_pos.y = i * this.cell_size + (this.cell_size - this.robot_size) / 2;
 					this.update_player_bb();
 				}
-				if(cell_type == BRICK){
+				if(cell_type == BRICK || cell_type == BLACK_HOLE || cell_type == ESCAPE){
 					this.colliders.push({
 							rect: getCellBB(i, j, this.cell_size),
 							type: cell_type
@@ -152,12 +134,10 @@ function World(){
 	};
 	
 	this.reset = function(){
-		this.sensorsLast[0] = -1;
-		this.engines[0] = 0;
-		this.engines[1] = 0;
-		this.engines[2] = 0;
-		this.engines[3] = 0;
-		this.init_world(this.level_name, this.width, this.height);
+		for(var i = 0; i < 4; i++) {
+			this.sensorsLast[i] = 0;
+			this.sensors[i] = 0;
+		}
 	}
 
 	this.world_update = function(dt){
@@ -221,6 +201,26 @@ function World(){
 					if(intersectRect(this.sens[k], cell.rect)) {
 						this.sensors[k] = 1;
 					}
+				}
+			} else if(cell.type == BLACK_HOLE){
+				var count = 0;
+				for(var k = 0; k < 4; k++) {
+					if(intersectRect(this.sens[k], cell.rect)) {
+						count++;
+					}
+				}
+				if(count > 2) {
+					this.robot_out = true;
+				}
+			} else if(cell.type == ESCAPE){
+				var count = 0;
+				for(var k = 0; k < 4; k++) {
+					if(intersectRect(this.sens[k], cell.rect)) {
+						count++;
+					}
+				}
+				if(count > 2) {
+					this.robot_finish = true;
 				}
 			}
 		}

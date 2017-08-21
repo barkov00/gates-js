@@ -1,3 +1,120 @@
+/*
+0 - empty
+1 - start position
+2 - exit
+3 - brick
+4 - black hole
+*/
+/*
+0 - and
+1 - or
+2 - not
+3 - nand
+4 - nor
+5 - xor
+6 - iR
+7 - iL
+8 - iT
+9 - iB
+10 - eR
+11 - eL
+12 - eT
+13 - eB
+*/
+var levels = Array();
+
+var level1 = {
+	matrix: [ 
+		[3, 3, 3, 3, 3, 3, 3, 3, 3, 3], 
+		[3, 1, 0, 0, 0, 3, 3, 3, 3, 3], 
+		[3, 0, 0, 0, 0, 3, 0, 0, 0, 3], 
+		[3, 0, 0, 0, 0, 3, 0, 0, 0, 3], 
+		[3, 0, 0, 0, 0, 3, 0, 0, 0, 3], 
+		[3, 0, 0, 0, 0, 3, 0, 2, 0, 3], 
+		[3, 0, 0, 0, 0, 3, 3, 3, 0, 3], 
+		[3, 0, 0, 0, 0, 0, 0, 0, 0, 3], 
+		[3, 0, 0, 0, 0, 0, 0, 0, 0, 3],
+		[3, 3, 3, 3, 3, 3, 3, 3, 3, 3] 	
+	],
+	name: 0,
+	gates: [],
+	title: "Уровень 1",
+	summary: "Соединяем провода"
+};
+
+var level2 = {
+	matrix: [ 
+	[4, 4, 4, 4, 4, 4, 4, 4, 4, 4], 
+	[4, 0, 0, 0, 0, 0, 0, 0, 0, 4], 
+	[4, 0, 0, 0, 0, 0, 0, 0, 0, 4], 
+	[4, 0, 1, 0, 0, 0, 0, 2, 3, 4], 
+	[4, 0, 0, 0, 0, 0, 0, 0, 0, 4], 
+	[4, 0, 0, 0, 0, 0, 0, 0, 0, 4], 
+	[4, 4, 4, 4, 4, 4, 4, 4, 4, 4] 	
+],
+name: 1,
+gates: [2],
+	title: "Уровень 2",
+	summary: "Это не проблема"
+};
+
+
+var level3 = {matrix:[ 
+	[4, 4, 4, 4, 4, 4, 4, 4, 4, 4], 
+	[4, 0, 0, 0, 0, 0, 0, 0, 0, 4], 
+	[4, 0, 0, 0, 0, 0, 0, 3, 0, 4], 
+	[4, 0, 1, 0, 0, 0, 0, 2, 4, 4], 
+	[4, 0, 0, 0, 0, 0, 0, 0, 0, 4], 
+	[4, 0, 0, 0, 0, 0, 0, 0, 0, 4], 
+	[4, 4, 4, 4, 4, 4, 4, 4, 4, 4] 	
+],
+name: 2,
+gates: [2],
+	title: "Уровень 3",
+	summary: "Это не проблема 2"
+};
+
+var level4 = {matrix:[ 
+	[4, 4, 4, 4, 4, 4, 4, 4, 4], 
+	[4, 4, 4, 4, 4, 3, 3, 3, 4], 
+	[4, 4, 4, 4, 4, 0, 2, 3, 4], 
+	[4, 4, 4, 4, 4, 0, 0, 3, 4], 
+	[4, 4, 4, 4, 4, 0, 0, 3, 4], 
+	[4, 4, 4, 4, 4, 0, 0, 3, 4], 
+	[4, 4, 4, 4, 4, 0, 0, 3, 4], 
+	[4, 4, 4, 4, 4, 0, 0, 3, 4], 
+	[4, 4, 4, 4, 4, 0, 0, 3, 4], 
+	[4, 0, 1, 0, 0, 0, 0, 4, 4], 
+	[4, 3, 3, 3, 3, 0, 0, 0, 4], 
+	[4, 4, 4, 4, 4, 4, 4, 4, 4] 	
+],
+name: 3,
+gates: [2],
+	title: "Уровень 4",
+	summary: "Это не проблема 3"
+};
+
+var level5 = {matrix:[ 
+	[4, 4, 4, 4, 4, 4, 4, 4, 4, 4], 
+	[4, 3, 3, 3, 3, 3, 3, 3, 3, 4], 
+	[4, 1, 0, 0, 0, 0, 0, 2, 4, 4], 
+	[4, 3, 3, 3, 3, 3, 3, 0, 3, 4], 
+	[4, 4, 4, 4, 4, 4, 4, 4, 4, 4] 	
+],
+name: 4,
+gates: [2, 0],
+	title: "Уровень 5",
+	summary: "И так и сяк"
+};
+
+
+(function(){
+	levels[0] = level1;
+	levels[1] = level2;
+	levels[2] = level3;
+	levels[3] = level4;
+	levels[4] = level5;
+})();
 
 var toolbar_height = 50;
 var graphics = [];
@@ -26,12 +143,18 @@ var editor_visible = true;
 var world_instance = null;
 var WORLD_WIDTH = 1280;
 var WORLD_HEIGHT = 720;
+var current_level = null;
 
 var ed_sensors = [0, 0, 0, 0]; //R L T B
 var ed_engines = [0, 0, 0, 0]; //R L T B
 
-function editor_resize(){
-	
+
+
+function load_level(level_num, reset){
+	current_level = levels[level_num];
+	world_instance.init_world(current_level, WORLD_WIDTH, WORLD_HEIGHT);
+	if(reset) world_instance.reset();
+	place_toolbar_buttons(current_level.gates);
 }
 
 function editor_reset(){
@@ -187,6 +310,8 @@ function Wire(p1, p2){
 		this.logic_level = level;
 		for(var i = 0; i < this.pins.length; i++){
 			this.pins[i].logic_level = this.logic_level;
+			//Ставим логический уровень на всех wire'ах которые подключены к этому пину
+			for(var j = 0; j < this.pins[i].wire_point.length; j++) this.pins[i].wire_point[j].wire.setLogicLevel(this.logic_level);
 		}
 	}
 }
@@ -511,13 +636,16 @@ function LogicObject(name, x, y, width, height){
 
 var setCode;
 var getCode;
+var inputController;
 
-function init_editor(_canvas, _setCode, _getCode){
+function init_editor(_canvas, _inputController){
 	canvas = _canvas;
-	setCode = _setCode;
-	getCode = _getCode;
+	//setCode = _setCode;
+	//getCode = _getCode;
 	
-	setCode("");
+	inputController = _inputController;
+	
+	inputController.setCode("");
 	
 	canvas.addEventListener('mousemove', function(evt) {
 		var rect = canvas.getBoundingClientRect();
@@ -558,24 +686,51 @@ function init_editor(_canvas, _setCode, _getCode){
 	load_image("expand", "images/expand-button.png");
 	load_image("poweron", "images/poweron_button.png");
 	
-	var btn_width = 100 * 0.7;
-	var btn_height = 50 * 0.7;
-	
-	toolbar_btns.push(new SimpleButton("and", 0, 0, btn_width, btn_height, graphics["and"]));
-	toolbar_btns.push(new SimpleButton("or", btn_width, 0, btn_width, btn_height, graphics["or"]));
-	toolbar_btns.push(new SimpleButton("not", btn_width*2, 0, btn_width, btn_height, graphics["not"]));
-	toolbar_btns.push(new SimpleButton("nand", btn_width*3, 0, btn_width, btn_height, graphics["nand"]));
-	toolbar_btns.push(new SimpleButton("nor", btn_width*4, 0, btn_width, btn_height, graphics["nor"]));
-	toolbar_btns.push(new SimpleButton("xor", btn_width*5, 0, btn_width, btn_height, graphics["xor"]));
-	toolbar_btns.push(new SimpleButton("scissors", btn_width*6, 0, btn_height, btn_height, graphics["scissors"]));
-	collapse_button = new SimpleButton("hide_show_button", WORLD_WIDTH - btn_width, 0, btn_height, btn_height, graphics["collapse"]);
-	power_button = new SimpleButton("poweron", WORLD_WIDTH - btn_width * 2, 0, btn_height, btn_height, graphics["poweron"]);
-	
+
 	place_inputs_outputs();
 	
 	scissors = new StaticObject("scissors", -100, -100, 50 * 0.7, 50 * 0.7);
 	
 	pin_bb_size = elem_height / 5;
+}
+
+function place_toolbar_buttons(ids){
+	var btn_width = 100 * 0.7;
+	var btn_height = 50 * 0.7;
+	
+	/*
+	0 - and
+	1 - or
+	2 - not
+	3 - nand
+	4 - nor
+	5 - xor
+	*/
+	
+	toolbar_btns = Array();
+	
+	if(ids.indexOf(0) >= 0){
+		toolbar_btns.push(new SimpleButton("and", 0, 0, btn_width, btn_height, graphics["and"]));
+	}
+	if(ids.indexOf(1) >= 0) {
+		toolbar_btns.push(new SimpleButton("or", btn_width, 0, btn_width, btn_height, graphics["or"]));
+	}
+	if(ids.indexOf(2) >= 0) {
+		toolbar_btns.push(new SimpleButton("not", btn_width*2, 0, btn_width, btn_height, graphics["not"]));
+	}
+	if(ids.indexOf(3) >= 0) {
+		toolbar_btns.push(new SimpleButton("nand", btn_width*3, 0, btn_width, btn_height, graphics["nand"]));
+	}
+	if(ids.indexOf(4) >= 0) {
+		toolbar_btns.push(new SimpleButton("nor", btn_width*4, 0, btn_width, btn_height, graphics["nor"]));
+	}
+	if(ids.indexOf(5) >= 0) {
+		toolbar_btns.push(new SimpleButton("xor", btn_width*5, 0, btn_width, btn_height, graphics["xor"]));
+	}
+
+	toolbar_btns.push(new SimpleButton("scissors", btn_width*6, 0, btn_height, btn_height, graphics["scissors"]));
+	collapse_button = new SimpleButton("hide_show_button", WORLD_WIDTH - btn_width, 0, btn_height, btn_height, graphics["collapse"]);
+	power_button = new SimpleButton("poweron", WORLD_WIDTH - btn_width * 2, 0, btn_height, btn_height, graphics["poweron"]);
 }
 
 function place_inputs_outputs(){
@@ -629,7 +784,7 @@ function editor_update(dt){
 	}
 	
 	if(power_button.hit && clicked){
-		world_instance.reset();
+		world_instance.init_world(current_level, WORLD_WIDTH, WORLD_HEIGHT);
 		serialize();
 		solve();
 		clicked = false;
@@ -897,16 +1052,183 @@ function mouse_project(x, y){
 	return {x: (x - trX) * (1/scaleX), y:(y - trY) * (1/scaleY)};
 }
 
+var ST_SELECT_LEVEL = 0, ST_WIN = 1, ST_GAMEOVER = 2, ST_HELP = 3, ST_PLAY = 4; 
+var game_state = ST_SELECT_LEVEL;
+
+function play_screen(cx, delta){
+	world_instance.world_update(delta);
+	
+	if(world_instance.robot_out){
+		game_state = ST_GAMEOVER;
+		return;
+	}
+	
+	if(world_instance.robot_finish){
+		game_state = ST_WIN;
+		return;
+	}
+	
+	if(editor_visible){
+		world_instance.alpha = 0.8;
+	} else {
+		world_instance.alpha = 0;
+	}
+	
+	world_instance.world_draw(cx);	
+	
+	if(world_instance.sensorsChanged()){
+		var sensors = world_instance.world_readSensors();
+		for(var i = 0; i < 4; i++) ed_sensors[i] = sensors[i];
+		console.log(ed_sensors);
+		solve();
+		world_instance.world_setEngines(ed_engines);
+	}
+	
+	editor_update(delta); 
+	editor_draw(cx);
+}
+
+function select_level_screen(cx, delta){
+	var columns_count = 6;
+	var rows_count = 5;
+	var coll_spacing = 20;
+	var row_spacing = 20;
+	var top_offset = 50;
+	var block_width  = (WORLD_WIDTH - coll_spacing * columns_count) / columns_count;
+	var block_height = (WORLD_HEIGHT - row_spacing * rows_count - top_offset) / columns_count;
+	var title_color = "#ffff00";
+	var description_color = "#41c4f4";
+	var border_color = "#ffff00";
+	
+	var mousepos = mouse_project(mouse.x, mouse.y);
+	var clicked = mouse_clicked() == 0;
+	
+	cx.strokeStyle = border_color;
+	for(var i = 0; i < columns_count; i++){
+		for(var j = 0; j < rows_count; j++){
+			var x = i * block_width + coll_spacing * i;
+			var y = top_offset + j * block_height + j * row_spacing;
+			var level_num = j * columns_count + i;
+			
+			if(level_num >= levels.length) continue;
+			
+			cx.beginPath();
+			cx.rect(x, y, block_width, block_height);
+			cx.stroke();
+			
+			if(rectContains(createRect(x, y, x + block_width, y + block_height), mousepos.x, mousepos.y)){
+				cx.fillStyle = mouse.pressed ? "#065F73" : border_color;
+				cx.beginPath();
+				cx.rect(x, y, block_width, block_height);
+				cx.fill();
+				cx.fillStyle = "#021B21";
+				if(clicked){
+					load_level(level_num, true);
+					//world_instance.init_world(level_num, WORLD_WIDTH, WORLD_HEIGHT);
+					game_state = ST_PLAY;
+				}
+			} else {
+				cx.fillStyle = title_color;
+			}
+
+			cx.textAlign = "center"; 
+			cx.font = "30px Arial";
+			cx.fillText(levels[level_num].title, x + block_width / 2, y + block_height / 2);
+			cx.font = "16px Arial";
+			cx.fillStyle = description_color;
+			cx.fillText(levels[level_num].summary, x + block_width / 2, y + block_height / 2 + 25);
+		}
+	}
+}
+
+function gameover_screen(cx, delta){
+	var button_width = 200;
+	var button_height = 50;
+	var button_x = WORLD_WIDTH/2 - button_width/2;
+	var button_y = WORLD_HEIGHT/2 + button_height/2 + 50;
+	
+	
+	var mousepos = mouse_project(mouse.x, mouse.y);
+	var clicked = mouse_clicked() == 0;
+	
+	cx.fillStyle = "#ffff00";
+	cx.textAlign = "center"; 
+	cx.font = "30px Arial";
+	cx.fillText("Потрачено!", WORLD_WIDTH/2, WORLD_HEIGHT/2);
+	cx.font = "16px Arial";
+	cx.fillStyle = "#ffffff";
+	cx.fillText("Робот вышел за границы поля и упал в черную дыру", WORLD_WIDTH/2, WORLD_HEIGHT/2 + 35);
+	
+	cx.strokeStyle = "#ffff00";
+	cx.beginPath();
+	if(rectContains(createRect(button_x, button_y, button_x + button_width, button_y + button_height), mousepos.x, mousepos.y)){
+		cx.fillStyle = "#ffff00";
+		cx.rect(button_x, button_y, button_width, button_height);
+		cx.fill();
+		cx.fillStyle = "#021B21";
+		if(clicked){
+			
+			load_level(current_level.name, true);
+			game_state = ST_PLAY;
+		}
+	} else {
+		cx.fillStyle = "#ffffff";
+	}
+	cx.rect(button_x, button_y, button_width, button_height);
+	cx.stroke();
+	cx.fillText("Попробовать снова", button_x + button_width / 2, button_y + button_height / 2 + 5);
+}
+
+function game_win_screen(cx, delta){
+	var button_width = 200;
+	var button_height = 50;
+	var button_x = WORLD_WIDTH/2 - button_width/2;
+	var button_y = WORLD_HEIGHT/2 + button_height/2 + 50;
+	
+	var next_level = current_level.name + 1;
+	
+	var mousepos = mouse_project(mouse.x, mouse.y);
+	var clicked = mouse_clicked() == 0;
+	
+	cx.fillStyle = "#ffff00";
+	cx.textAlign = "center"; 
+	cx.font = "30px Arial";
+	cx.fillText("Победа!!!", WORLD_WIDTH/2, WORLD_HEIGHT/2);
+	cx.font = "16px Arial";
+	cx.fillStyle = "#ffffff";
+	
+	if(next_level >= levels.length){
+		cx.fillText("Игра пройдена, уровней больше нет, но скоро будут :)", WORLD_WIDTH/2, WORLD_HEIGHT/2 + 35);
+	} else {
+		cx.strokeStyle = "#ffff00";
+		cx.beginPath();
+		if(rectContains(createRect(button_x, button_y, button_x + button_width, button_y + button_height), mousepos.x, mousepos.y)){
+			cx.fillStyle = "#ffff00";
+			cx.rect(button_x, button_y, button_width, button_height);
+			cx.fill();
+			cx.fillStyle = "#021B21";
+			if(clicked){
+				load_level(next_level, true);
+				game_state = ST_PLAY;
+			}
+		} else {
+			cx.fillStyle = "#ffffff";
+		}
+		cx.rect(button_x, button_y, button_width, button_height);
+		cx.stroke();
+		cx.fillText("Следующий уровень", button_x + button_width / 2, button_y + button_height / 2 + 5);
+	}
+}
+
 function game_loop(cx, delta, world){
 	if(world_instance == null){
 		world_instance = world;
-		world_instance.init_world(0, WORLD_WIDTH, WORLD_HEIGHT);
+		//world_instance.init_world(0, WORLD_WIDTH, WORLD_HEIGHT);
 	}
 	
 	var W = cx.canvas.clientWidth;
 	var H = cx.canvas.clientHeight;
 	var hn = H;
-
 	wn = H * (WORLD_WIDTH / WORLD_HEIGHT);
 	if(W < wn){
 		hn = W * (WORLD_HEIGHT / WORLD_WIDTH);
@@ -922,25 +1244,18 @@ function game_loop(cx, delta, world){
 	cx.translate(trX, trY);
 	cx.scale(scaleX, scaleY);
 	
-	world.world_update(delta); 
-	world.world_draw(cx);	
-	
-	if(editor_visible){
-		world.alpha = 0.8;
-	} else {
-		world.alpha = 0;
+	if(game_state == ST_PLAY) {
+		play_screen(cx, delta);
+	} else if(game_state == ST_SELECT_LEVEL) {
+		select_level_screen(cx, delta);
+	} else if(game_state == ST_WIN) {
+		game_win_screen(cx, delta);
+	} else if(game_state == ST_GAMEOVER) {
+		gameover_screen(cx, delta);
+	} else if(game_state == ST_HELP) {
+		
 	}
-	if(world.sensorsChanged()){
-		var sensors = world.world_readSensors();
-		for(var i = 0; i < 4; i++) ed_sensors[i] = sensors[i];
-		console.log(ed_sensors);
-		solve();
-		world.world_setEngines(ed_engines);
-	}
-	
-	editor_update(delta); 
-	editor_draw(cx);
-	
+
 	cx.restore();
 }
 
@@ -1047,7 +1362,7 @@ function serialize(){
 	
 	var json = JSON.stringify(circuit);
 
-	setCode(json);
+	inputController.setCode(json);
 	
 	//json = prompt("Код для загрузки:", json);
 	
@@ -1111,5 +1426,6 @@ function deserialize(json){
 		}
 		objects.push(obj);
 		
-		world_instance.init_world(json.level, WORLD_WIDTH, WORLD_HEIGHT);
+		load_level(json.level, false);
+		game_state = ST_PLAY;
 }

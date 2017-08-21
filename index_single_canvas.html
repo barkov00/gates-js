@@ -37,7 +37,7 @@
 	
 	<div class="input_block">
 	<canvas  id='editor'>Обновите браузер</canvas>
-		<div style="position: absolute; left: 1vw; bottom: 1vh;">
+		<div style="position: absolute; left: 1vw; bottom: 1vh; " id="input_div">
 			<!-- <div style="display: inline-block;">Ваш код для сохрания игры:</div> -->
 			<!-- <input value="123" style="display: inline-block;"/> -->
 			<p>
@@ -68,19 +68,29 @@
 		
 		var world = new World();
 
-		function setCode(code){
-			document.getElementById("code").value = code;
+		function InputController(){
+			this.setCode = function(code){
+				document.getElementById("code").value = code;
+			}
+			this.getCode = function(){
+				document.getElementById("code").value;
+			}	
+			this.hideCodeField = function(hide){
+				if(hide){
+					document.getElementById("input_div").style.visibility = "hidden";
+				} else {
+					document.getElementById("input_div").style.visibility = "visible";
+				}
+			}				
 		}
-
-		function getCode(){
-			return document.getElementById("code").value;
-		}			
+		
+		
 		
 		document.getElementById("load_btn").onclick = function(){
 			deserialize(document.getElementById("code").value);
 		}
 		
-		init_editor(editor_canvas, setCode, getCode);
+		init_editor(editor_canvas, new InputController());
 		
 		window.onresize = function(event) {
 			cx.canvas.width  = window.innerWidth;
