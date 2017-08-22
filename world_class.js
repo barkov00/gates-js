@@ -35,12 +35,13 @@ function World(){
 	this.player_pos = { x: 0, y: 0};
 	this.sensors = [0, 0, 0, 0];
 	this.engines = [0, 0, 0, 0];
-	this.sens = [ 		//left, right, top, bottom
+	this.sens = Array();
+	/*[ 		//left, right, top, bottom
 		{ left:   0, top:    0, right:  0, bottom: 0},
 		{ left:   0, top:    0, right:  0, bottom: 0},
 		{ left:   0, top:    0, right:  0, bottom: 0},
 		{ left:   0, top:    0, right:  0, bottom: 0}
-	];	
+	];*/	
 	this.player_bb = {left: 0, top: 0, right: 0, bottom: 0, intersects: 0};
 	this.alpha = 0;
 	this.robot_out = false;
@@ -119,8 +120,8 @@ function World(){
 			for(var j = 0; j < this.matrix_width; j++){
 				var cell_type = this.level[i][j];
 				if(cell_type == 1){
-					this.player_pos.x = j * this.cell_size + (this.cell_size - this.robot_size) / 2;
-					this.player_pos.y = i * this.cell_size + (this.cell_size - this.robot_size) / 2;
+					this.player_pos.x = 0 + j * this.cell_size + (this.cell_size - this.robot_size) / 2;
+					this.player_pos.y = 0 + i * this.cell_size + (this.cell_size - this.robot_size) / 2;
 					this.update_player_bb();
 				}
 				if(cell_type == BRICK || cell_type == BLACK_HOLE || cell_type == ESCAPE){
@@ -164,7 +165,68 @@ function World(){
 		this.update_player_bb();
 		
 		this.collisions(0, this.dy);
-			
+		
+		var sens_len = this.robot_size / 3.5;
+		
+		/*
+		Новый перспективный вариант: по 2 датчика с каждй стороны по краям, срабатывание засчитывается, когда сработали оба датчика
+		*/
+		//createRect(lft, tp, rgt, btm)
+		
+		//left
+		this.sens[0] = {
+			rects: [
+				//left
+				{c: 0, r: createRect(this.player_pos.x - this.sensor_width, this.player_pos.y + 3, this.player_pos.x, this.player_pos.y + sens_len)},
+				{c: 0, r: createRect(this.player_pos.x - this.sensor_width, this.player_pos.y + this.robot_size - sens_len, this.player_pos.x, this.player_pos.y + this.robot_size - 3)}
+			]
+		};
+		this.sens[1] = {
+			rects: [
+				//right
+				{c: 0, r: createRect(this.player_pos.x + this.robot_size, this.player_pos.y + 3, this.player_pos.x + this.robot_size + this.sensor_width, this.player_pos.y + sens_len)},
+				{c: 0, r: createRect(this.player_pos.x + this.robot_size, this.player_pos.y + this.robot_size - sens_len, this.player_pos.x + this.robot_size + this.sensor_width, this.player_pos.y + this.robot_size - 3)}
+			]
+		};
+		this.sens[2] = {
+			rects: [
+				//top
+				{c: 0, r: createRect(this.player_pos.x + 3, this.player_pos.y - this.sensor_width, this.player_pos.x + sens_len, this.player_pos.y)},
+				{c: 0, r: createRect(this.player_pos.x + this.robot_size - sens_len, this.player_pos.y - this.sensor_width, this.player_pos.x + this.robot_size - 3, this.player_pos.y)}
+			]
+		};
+		this.sens[3] = {
+			rects: [
+				//bottom
+				{c: 0, r: createRect(this.player_pos.x + 3, this.player_pos.y + this.robot_size, this.player_pos.x + sens_len, this.player_pos.y + this.robot_size + this.sensor_width)},
+				{c: 0, r: createRect(this.player_pos.x + this.robot_size - sens_len, this.player_pos.y + this.robot_size, this.player_pos.x + this.robot_size - 3, this.player_pos.y + this.robot_size + this.sensor_width)}
+			]
+		};
+		/*
+		this.sens[0].left = this.player_pos.x - this.sensor_width;//sens_offs;
+		this.sens[0].right = this.player_pos.x + this.sens_offs * 0;
+		this.sens[0].top = this.player_pos.y + this.robot_size / 2 - sens_len / 2;
+		this.sens[0].bottom = this.player_pos.y + this.robot_size / 2 + sens_len / 2;
+				
+		//right
+		this.sens[1].left = this.player_pos.x + this.robot_size - this.sens_offs * 0;
+		this.sens[1].right = this.player_pos.x + this.robot_size + this.sensor_width;//sens_offs;
+		this.sens[1].top = this.player_pos.y + this.robot_size / 2 - sens_len / 2;
+		this.sens[1].bottom = this.player_pos.y + this.robot_size / 2 + sens_len / 2;
+				
+		//top
+		this.sens[2].left = this.player_pos.x + this.robot_size / 2 - sens_len / 2;
+		this.sens[2].right = this.player_pos.x + this.robot_size / 2 + sens_len / 2;
+		this.sens[2].top = this.player_pos.y - this.sensor_width;//sens_offs;
+		this.sens[2].bottom = this.player_pos.y + this.sens_offs * 0;
+				
+		//bottom
+		this.sens[3].left = this.player_pos.x + this.robot_size / 2 - sens_len / 2;
+		this.sens[3].right = this.player_pos.x + this.robot_size / 2 + sens_len / 2;
+		this.sens[3].top = this.player_pos.y + this.robot_size;
+		this.sens[3].bottom = this.player_pos.y + this.robot_size + this.sensor_width;//sens_offs;
+		*/
+		/*
 		//left
 		this.sens[0].left = this.player_pos.x - this.sensor_width;//sens_offs;
 		this.sens[0].right = this.player_pos.x + this.sens_offs * 0;
@@ -188,25 +250,59 @@ function World(){
 		this.sens[3].right = this.player_pos.x + this.robot_size - 1;
 		this.sens[3].top = this.player_pos.y + this.robot_size;
 		this.sens[3].bottom = this.player_pos.y + this.robot_size + this.sensor_width;//sens_offs;
+		*/
 				
 		//sensors collisions	
 		for(var i = 0; i < 4; i++) this.sensors[i] = 0;
 			
+		
 		var colliders_count = this.colliders.length;
+		
+		for(var i = 0; i < this.sens.length; i++){
+			var count = 0;
+			for(var j = 0; j < this.sens[i].rects.length; j++){
+				for(var h = 0; h < colliders_count; h++)
+				{
+					var cell = this.colliders[h];
+					if(cell.type == BRICK){
+						if(this.sens[i].rects[j].c == 0)
+						if(intersectRect(this.sens[i].rects[j].r, cell.rect)) 
+						{
+							this.sens[i].rects[j].c = 1;
+							count++;
+						}
+					}
+				}
+			}
+			if(count == 2) this.sensors[i] = 1;
+		}
+		
+		//console.log(this.player_pos);
+		
 		for(var i = 0; i < colliders_count; i++)
 		{
 			var cell = this.colliders[i];
+			/*
 			if(cell.type == BRICK){
-				for(var k = 0; k < 4; k++) {
-					if(intersectRect(this.sens[k], cell.rect)) {
+				for(var k = 0; k < this.sens.length; k++) {
+					var count = 0;
+					for(var g = 0; g < this.sens[k].rects.length; g++){
+						if(intersectRect(this.sens[k].rects[g], cell.rect)) {
+							//this.sensors[k] = 1;
+							count++;
+						}
+					}
+					if(count == 2){
 						this.sensors[k] = 1;
 					}
 				}
-			} else if(cell.type == BLACK_HOLE){
+			} else */if(cell.type == BLACK_HOLE){
 				var count = 0;
-				for(var k = 0; k < 4; k++) {
-					if(intersectRect(this.sens[k], cell.rect)) {
+				for(var k = 0; k < this.sens.length; k++) {
+					for(var g = 0; g < this.sens[k].rects.length; g++){
+					if(intersectRect(this.sens[k].rects[g].r, cell.rect)) {
 						count++;
+					}
 					}
 				}
 				if(count > 2) {
@@ -214,9 +310,11 @@ function World(){
 				}
 			} else if(cell.type == ESCAPE){
 				var count = 0;
-				for(var k = 0; k < 4; k++) {
-					if(intersectRect(this.sens[k], cell.rect)) {
-						count++;
+				for(var k = 0; k < this.sens.length; k++) {
+					for(var g = 0; g < this.sens[k].rects.length; g++){
+						if(intersectRect(this.sens[k].rects[g].r, cell.rect)) {
+							count++;
+						}
 					}
 				}
 				if(count > 2) {
@@ -267,17 +365,21 @@ function World(){
 		cx.closePath();
 		
 		
-			
+		
 		if(this.draw_sensors){
-			for(var i = 0; i < 4; i++){
-				var r = this.sens[i];
-				cx.beginPath();
-				cx.strokeStyle = (this.sensors[i] == 1) ? 'red' : 'cyan';
-				cx.rect(r.left, r.bottom, r.right - r.left, r.top - r.bottom);
-				cx.stroke();
-				cx.closePath();
+			for(var i = 0; i < this.sens.length; i++){
+				for(var j = 0; j < this.sens[i].rects.length; j++){
+					var r = this.sens[i].rects[j].r;
+					var color = this.sens[i].rects[j].c == 1 ? 'red' : 'cyan';
+					cx.beginPath();
+					cx.strokeStyle = color;//this.sensors[i] == 1) ? 'red' : 'cyan';
+					cx.rect(r.left, r.bottom, r.right - r.left, r.top - r.bottom);
+					cx.stroke();
+					cx.closePath();
+				}
 			}	
 		}
+		
 		
 		cx.fillStyle = "rgba(0,0,0," + this.alpha + ")";
 		cx.fillRect(0, 0, this.matrix_width * this.cell_size, this.matrix_height * this.cell_size);
