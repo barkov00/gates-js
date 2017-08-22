@@ -15,6 +15,7 @@ function World(){
 	var LFT = 0, RGT = 1, TOP = 2, BTM = 3;
 	this.width = 0;
 	this.height = 0;
+	this.time_delay = 0;
 	this.sensorsLast = [-1, -1, -1, -1];
 	this.draw_sensors = true;
 	this.colliders = [];
@@ -177,29 +178,35 @@ function World(){
 		this.sens[0] = {
 			rects: [
 				//left
-				{c: 0, r: createRect(this.player_pos.x - this.sensor_width, this.player_pos.y + 3, this.player_pos.x, this.player_pos.y + sens_len)},
-				{c: 0, r: createRect(this.player_pos.x - this.sensor_width, this.player_pos.y + this.robot_size - sens_len, this.player_pos.x, this.player_pos.y + this.robot_size - 3)}
+				{c: 0, r: createRect(this.player_pos.x - this.sensor_width, this.player_pos.y + this.robot_size/2 - sens_len/2, this.player_pos.x, this.player_pos.y + this.robot_size/2 + sens_len/2)},
+				//{c: 0, r: createRect(this.player_pos.x - this.sensor_width, this.player_pos.y + 3, this.player_pos.x, this.player_pos.y + sens_len)},
+				//{c: 0, r: createRect(this.player_pos.x - this.sensor_width, this.player_pos.y + this.robot_size - sens_len, this.player_pos.x, this.player_pos.y + this.robot_size - 3)}
 			]
 		};
 		this.sens[1] = {
 			rects: [
 				//right
-				{c: 0, r: createRect(this.player_pos.x + this.robot_size, this.player_pos.y + 3, this.player_pos.x + this.robot_size + this.sensor_width, this.player_pos.y + sens_len)},
-				{c: 0, r: createRect(this.player_pos.x + this.robot_size, this.player_pos.y + this.robot_size - sens_len, this.player_pos.x + this.robot_size + this.sensor_width, this.player_pos.y + this.robot_size - 3)}
+				{c: 0, r: createRect(this.player_pos.x + this.robot_size, this.player_pos.y + this.robot_size/2 - sens_len/2, this.player_pos.x + this.robot_size + this.sensor_width, this.player_pos.y + this.robot_size/2 + sens_len/2)},
+				//{c: 0, r: createRect(this.player_pos.x + this.robot_size, this.player_pos.y + 3, this.player_pos.x + this.robot_size + this.sensor_width, this.player_pos.y + sens_len)},
+				//{c: 0, r: createRect(this.player_pos.x + this.robot_size, this.player_pos.y + this.robot_size - sens_len, this.player_pos.x + this.robot_size + this.sensor_width, this.player_pos.y + this.robot_size - 3)}
 			]
 		};
 		this.sens[2] = {
 			rects: [
 				//top
-				{c: 0, r: createRect(this.player_pos.x + 3, this.player_pos.y - this.sensor_width, this.player_pos.x + sens_len, this.player_pos.y)},
-				{c: 0, r: createRect(this.player_pos.x + this.robot_size - sens_len, this.player_pos.y - this.sensor_width, this.player_pos.x + this.robot_size - 3, this.player_pos.y)}
+				//{c: 0, r: createRect(this.player_pos.x + 1, this.player_pos.y - this.sensor_width, this.player_pos.x + sens_len, this.player_pos.y)},
+				{c: 0, r: createRect(this.player_pos.x + this.robot_size/2 - sens_len/2, this.player_pos.y - this.sensor_width, this.player_pos.x + this.robot_size/2 + sens_len/2, this.player_pos.y)},
+				//{c: 0, r: createRect(this.player_pos.x + 3, this.player_pos.y - this.sensor_width, this.player_pos.x + sens_len, this.player_pos.y)},
+				//{c: 0, r: createRect(this.player_pos.x + this.robot_size - sens_len, this.player_pos.y - this.sensor_width, this.player_pos.x + this.robot_size - 3, this.player_pos.y)}
 			]
 		};
 		this.sens[3] = {
 			rects: [
 				//bottom
-				{c: 0, r: createRect(this.player_pos.x + 3, this.player_pos.y + this.robot_size, this.player_pos.x + sens_len, this.player_pos.y + this.robot_size + this.sensor_width)},
-				{c: 0, r: createRect(this.player_pos.x + this.robot_size - sens_len, this.player_pos.y + this.robot_size, this.player_pos.x + this.robot_size - 3, this.player_pos.y + this.robot_size + this.sensor_width)}
+				//{c: 0, r: createRect(this.player_pos.x + this.robot_size - sens_len, this.player_pos.y + this.robot_size, this.player_pos.x + this.robot_size, this.player_pos.y + this.robot_size + this.sensor_width)},
+				{c: 0, r: createRect(this.player_pos.x + this.robot_size/2 - sens_len/2, this.player_pos.y + this.robot_size, this.player_pos.x + this.robot_size/2 + sens_len/2, this.player_pos.y + this.robot_size + this.sensor_width)},
+				//{c: 0, r: createRect(this.player_pos.x + 3, this.player_pos.y + this.robot_size, this.player_pos.x + sens_len, this.player_pos.y + this.robot_size + this.sensor_width)},
+				//{c: 0, r: createRect(this.player_pos.x + this.robot_size - sens_len, this.player_pos.y + this.robot_size, this.player_pos.x + this.robot_size - 3, this.player_pos.y + this.robot_size + this.sensor_width)}
 			]
 		};
 		/*
@@ -253,28 +260,57 @@ function World(){
 		*/
 				
 		//sensors collisions	
-		for(var i = 0; i < 4; i++) this.sensors[i] = 0;
+		
 			
+		
 		
 		var colliders_count = this.colliders.length;
 		
+		for(var i = 0; i < 4; i++) this.sensors[i] = 0;
+		
+		/*
 		for(var i = 0; i < this.sens.length; i++){
-			var count = 0;
-			for(var j = 0; j < this.sens[i].rects.length; j++){
-				for(var h = 0; h < colliders_count; h++)
-				{
-					var cell = this.colliders[h];
-					if(cell.type == BRICK){
-						if(this.sens[i].rects[j].c == 0)
-						if(intersectRect(this.sens[i].rects[j].r, cell.rect)) 
-						{
-							this.sens[i].rects[j].c = 1;
-							count++;
+				var count = 0;
+				for(var j = 0; j < this.sens[i].rects.length; j++){
+					for(var h = 0; h < colliders_count; h++)
+					{
+						var cell = this.colliders[h];
+						if(cell.type == BRICK){
+							if(this.sens[i].rects[j].c == 0)
+							if(intersectRect(this.sens[i].rects[j].r, cell.rect)) 
+							{
+								this.sens[i].rects[j].c = 1;
+								count++;
+							}
 						}
 					}
 				}
+				if(count == 1) this.sensors[i] = 1;
 			}
-			if(count == 2) this.sensors[i] = 1;
+			*/
+		var mx = (this.player_bb.left + this.player_bb.right) / 2;
+		var my = (this.player_bb.top + this.player_bb.bottom) / 2;
+		mx = Math.floor(mx / this.cell_size);
+		my = Math.floor(my / this.cell_size);
+		
+		//L R T B
+		var left = mx - 1;
+		var right = mx + 1;
+		var top = my - 1;
+		var bottom = my + 1;
+		if( !(mx >= this.matrix_width || my >= this.matrix_height)){
+			if(this.level[my][left] == BRICK){
+				this.sensors[0] = 1;
+			}
+			if(this.level[my][right]== BRICK){
+				this.sensors[1] = 1;
+			}
+			if(this.level[top][mx]== BRICK){
+				this.sensors[2] = 1;
+			}
+			if(this.level[bottom][mx]== BRICK){
+				this.sensors[3] = 1;
+			}
 		}
 		
 		//console.log(this.player_pos);
