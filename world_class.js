@@ -266,9 +266,10 @@ function World(){
 		
 		var colliders_count = this.colliders.length;
 		
-		for(var i = 0; i < 4; i++) this.sensors[i] = 0;
+		
 		
 		/*
+		for(var i = 0; i < 4; i++) this.sensors[i] = 0;
 		for(var i = 0; i < this.sens.length; i++){
 				var count = 0;
 				for(var j = 0; j < this.sens[i].rects.length; j++){
@@ -298,6 +299,11 @@ function World(){
 		var right = mx + 1;
 		var top = my - 1;
 		var bottom = my + 1;
+		
+		this.time_delay+= dt;
+		if(this.time_delay > 0.15){
+			
+			for(var i = 0; i < 4; i++) this.sensors[i] = 0;
 		if( !(mx >= this.matrix_width || my >= this.matrix_height)){
 			if(this.level[my][left] == BRICK){
 				this.sensors[0] = 1;
@@ -311,6 +317,8 @@ function World(){
 			if(this.level[bottom][mx]== BRICK){
 				this.sensors[3] = 1;
 			}
+		}
+		this.time_delay = 0;
 		}
 		
 		//console.log(this.player_pos);
@@ -345,6 +353,7 @@ function World(){
 					this.robot_out = true;
 				}
 			} else if(cell.type == ESCAPE){
+				/*
 				var count = 0;
 				for(var k = 0; k < this.sens.length; k++) {
 					for(var g = 0; g < this.sens[k].rects.length; g++){
@@ -354,6 +363,11 @@ function World(){
 					}
 				}
 				if(count > 2) {
+					this.robot_finish = true;
+				}
+				*/
+				var c = rectCenter(this.player_bb);
+				if(rectContains(cell.rect, c.x, c.y)){
 					this.robot_finish = true;
 				}
 			}
@@ -400,13 +414,13 @@ function World(){
 		cx.fill();
 		cx.closePath();
 		
-		
+		//cx.strokeStyle = "cyan"
 		
 		if(this.draw_sensors){
 			for(var i = 0; i < this.sens.length; i++){
 				for(var j = 0; j < this.sens[i].rects.length; j++){
 					var r = this.sens[i].rects[j].r;
-					var color = this.sens[i].rects[j].c == 1 ? 'red' : 'cyan';
+					var color = this.sensors[i] == 1 ? 'red' : 'cyan';
 					cx.beginPath();
 					cx.strokeStyle = color;//this.sensors[i] == 1) ? 'red' : 'cyan';
 					cx.rect(r.left, r.bottom, r.right - r.left, r.top - r.bottom);

@@ -160,6 +160,8 @@ var levels = Array();
 	
 })();
 
+var btn_width = 100 * 0.7;
+var btn_height = 50 * 0.7;
 var toolbar_height = 50;
 var graphics = [];
 var canvas = null;
@@ -739,8 +741,7 @@ function init_editor(_canvas, _inputController){
 }
 
 function place_toolbar_buttons(ids){
-	var btn_width = 100 * 0.7;
-	var btn_height = 50 * 0.7;
+	
 	
 	/*
 	0 - and
@@ -1022,10 +1023,14 @@ function editor_draw(cx){
 	
 	cx.save();
 	
-	collapse_button.draw(cx);
-	power_button.draw(cx);
+	
 
 	if(editor_visible){
+		cx.beginPath();
+		cx.fillStyle = "rgba(255, 255, 255, 0.2)";
+		cx.rect(0, 0, WORLD_WIDTH, btn_height);
+		cx.fill();
+		cx.closePath();
 		for(var i = 0; i < toolbar_btns.length; i++){ //Кнопки
 			toolbar_btns[i].draw(cx);	
 		}
@@ -1040,6 +1045,9 @@ function editor_draw(cx){
 		
 		cx.drawImage(graphics[scissors.name], scissors.rect.left, scissors.rect.top, scissors.rect.width, scissors.rect.height);
 	}
+	
+	collapse_button.draw(cx);
+	power_button.draw(cx);
 		
 	cx.restore();
 }
@@ -1186,9 +1194,10 @@ function select_level_screen(cx, delta){
 	
 	cx.textAlign = "left"; 
 	cx.fillStyle = description_color;
-	cx.fillText("Управление: 	Клик ЛКМ - начать перетаскивать элемент или подключить провод к элементу", 50, WORLD_HEIGHT/2 + 100);
-	cx.fillText("Клик ПКМ по элементу - вращать элемент на 90 градусов", 50, WORLD_HEIGHT/2 + 125);
-	cx.fillText("Клик ПКМ при перетаскивании провода - отмена и удаление провода", 50, WORLD_HEIGHT/2 + 150);
+	cx.fillText("Цель игры - вывести робота на зеленый квадрат (выход). Избегая черных квадратов и стен (красные)", 50, WORLD_HEIGHT/2 + 80);
+	cx.fillText("Управление: 	Клик ЛКМ - начать перетаскивать элемент или подключить провод к элементу", 50, WORLD_HEIGHT/2 + 125);
+	cx.fillText("Клик ПКМ по элементу - вращать элемент на 90 градусов", 50, WORLD_HEIGHT/2 + 150);
+	cx.fillText("Клик ПКМ при перетаскивании провода - отмена и удаление провода", 50, WORLD_HEIGHT/2 + 175);
 }
 
 function gameover_screen(cx, delta){
