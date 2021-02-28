@@ -40,7 +40,7 @@ var levels = Array();
 		name: 0,
 		gates: [],
 		title: "Уровень 1",
-		summary: "Соединяем провода"
+		summary: ""
 	});
 	
 	levels.push({
@@ -56,7 +56,7 @@ var levels = Array();
 		name: 1,
 		gates: [2],
 		title: "Уровень 2",
-		summary: "Это не проблема"
+		summary: ""
 	});
 	
 	levels.push({
@@ -72,7 +72,7 @@ var levels = Array();
 		name: 2,
 		gates: [2],
 		title: "Уровень 3",
-		summary: "Это не проблема 2"
+		summary: ""
 	});
 	
 	levels.push({
@@ -93,7 +93,7 @@ var levels = Array();
 		name: 3,
 		gates: [2],
 		title: "Уровень 4",
-		summary: "Это не проблема 3"
+		summary: ""
 	});
 	
 	levels.push({
@@ -107,7 +107,7 @@ var levels = Array();
 		name: 4,
 		gates: [2, 0],
 		title: "Уровень 5",
-		summary: "И так и сяк"
+		summary: ""
 	});
 	
 	levels.push({
@@ -123,7 +123,7 @@ var levels = Array();
 		name: 5,
 		gates: [1],
 		title: "Уровень 6",
-		summary: "В любом случае"
+		summary: ""
 	});
 	
 	levels.push({
@@ -139,7 +139,7 @@ var levels = Array();
 		name: 6,
 		gates: [2, 0],
 		title: "Уровень 7",
-		summary: "В любом случае 2"
+		summary: ""
 	});
 	
 	levels.push({
@@ -1106,17 +1106,23 @@ function mouse_project(x, y){
 
 var ST_SELECT_LEVEL = 0, ST_WIN = 1, ST_GAMEOVER = 2, ST_HELP = 3, ST_PLAY = 4; 
 var game_state = ST_SELECT_LEVEL;
+var ceilTimer = 0;
 
 function play_screen(cx, delta){
 	world_instance.world_update(delta);
 	
-	if(world_instance.robot_out){
-		game_state = ST_GAMEOVER;
-		return;
+	if(world_instance.robot_finish){
+		ceilTimer += delta;
+		if(ceilTimer > 2){
+			game_state = ST_WIN;
+			return;
+		}
+	} else {
+		ceilTimer = 0;
 	}
 	
-	if(world_instance.robot_finish){
-		game_state = ST_WIN;
+	if(world_instance.robot_out){
+		game_state = ST_GAMEOVER;
 		return;
 	}
 	
@@ -1194,7 +1200,7 @@ function select_level_screen(cx, delta){
 	
 	cx.textAlign = "left"; 
 	cx.fillStyle = description_color;
-	cx.fillText("Цель игры - вывести робота на зеленый квадрат (выход). Избегая черных квадратов и стен (красные)", 50, WORLD_HEIGHT/2 + 80);
+	cx.fillText("Цель игры - вывести робота на зеленый квадрат (выход), избегая черных клеток.", 50, WORLD_HEIGHT/2 + 80);
 	cx.fillText("Управление: 	Клик ЛКМ - начать перетаскивать элемент или подключить провод к элементу", 50, WORLD_HEIGHT/2 + 125);
 	cx.fillText("Клик ПКМ по элементу - вращать элемент на 90 градусов", 50, WORLD_HEIGHT/2 + 150);
 	cx.fillText("Клик ПКМ при перетаскивании провода - отмена и удаление провода", 50, WORLD_HEIGHT/2 + 175);
@@ -1213,10 +1219,10 @@ function gameover_screen(cx, delta){
 	cx.fillStyle = "#ffff00";
 	cx.textAlign = "center"; 
 	cx.font = "30px Arial";
-	cx.fillText("Потрачено!", WORLD_WIDTH/2, WORLD_HEIGHT/2);
+	cx.fillText("Неудача!", WORLD_WIDTH/2, WORLD_HEIGHT/2);
 	cx.font = "16px Arial";
 	cx.fillStyle = "#ffffff";
-	cx.fillText("Робот вышел за границы поля и упал в черную дыру", WORLD_WIDTH/2, WORLD_HEIGHT/2 + 35);
+	cx.fillText("Робот вышел за границы поля (попал на черную клетку)", WORLD_WIDTH/2, WORLD_HEIGHT/2 + 35);
 	
 	cx.strokeStyle = "#ffff00";
 	cx.beginPath();
@@ -1257,7 +1263,7 @@ function game_win_screen(cx, delta){
 	cx.fillStyle = "#ffffff";
 	
 	if(next_level >= levels.length){
-		cx.fillText("Игра пройдена, уровней больше нет, но скоро будут :)", WORLD_WIDTH/2, WORLD_HEIGHT/2 + 35);
+		cx.fillText("Вы прошли последний доступный уровень. Спасибо за игру!", WORLD_WIDTH/2, WORLD_HEIGHT/2 + 35);
 	} else {
 		cx.strokeStyle = "#ffff00";
 		cx.beginPath();

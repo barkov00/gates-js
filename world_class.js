@@ -139,6 +139,7 @@ function World(){
 		for(var i = 0; i < 4; i++) {
 			this.sensorsLast[i] = 0;
 			this.sensors[i] = 0;
+			this.engines[i] = false;
 		}
 	}
 

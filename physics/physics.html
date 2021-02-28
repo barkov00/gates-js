@@ -1,0 +1,104 @@
+﻿<!doctype html>
+<!-- 021B21 032C36 065F73 E8DFD6 FF2A1D-->
+<html>
+	<head>
+		<title></title>
+        <meta charset='utf-8' />
+	</head>
+	<style>
+	
+	html, body {
+		background-color: #021B21;
+		margin: 0;
+		width:  100%;
+		height: 100%;
+	}
+	.input_block {
+		position:relative;
+		text-shadow: 1px 1px #065F73;
+		font-size: 12pt;
+		font-family: Verdana;
+		color: #E8DFD6;
+		width: 100%;
+	}
+	.input_style {
+		font-size: 12pt;
+		font-family: Verdana;
+		color: #065F73;
+		width: auto;
+	}
+	.button_style {
+		font-size: 12pt;
+		font-family: Verdana;
+		color: #065F73;
+	}
+	</style>
+	<body>
+	
+	<div class="input_block">
+	<canvas  id='editor'>Обновите браузер</canvas>
+
+	</div>
+	<script type="text/javascript" src="utils.js"></script>
+	<script type="text/javascript">
+		//WTF??
+		var vendors = ['webkit', 'moz'];
+		for (var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
+			window.requestAnimationFrame = window[vendors[x] + 'RequestAnimationFrame'];
+			window.cancelAnimationFrame = window[vendors[x] + 'CancelAnimationFrame'] || window[vendors[x] + 'CancelRequestAnimationFrame'];
+		}
+	
+		var editor_canvas = document.getElementById("editor");
+		var w = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
+		var h = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
+		editor_canvas.width = w;
+		editor_canvas.height = h * 1.0;
+		
+		var cx = null;
+		var currentTime = 0, lastTime = (new Date()).getTime();
+		var angle = 0;
+
+		function InputController(){
+			this.setCode = function(code){
+				document.getElementById("code").value = code;
+			}
+			this.getCode = function(){
+				document.getElementById("code").value;
+			}	
+			this.hideCodeField = function(hide){
+				if(hide){
+					document.getElementById("input_div").style.visibility = "hidden";
+				} else {
+					document.getElementById("input_div").style.visibility = "visible";
+				}
+			}				
+		}
+		
+		window.onresize = function(event) {
+			cx.canvas.width  = window.innerWidth;
+			cx.canvas.height = window.innerHeight;
+		};
+		
+		function mainLoop(){
+			currentTime = (new Date()).getTime();
+			var delta = (currentTime - lastTime) / 1000;
+			lastTime = currentTime;
+			cx.clearRect(0, 0, editor_canvas.width, editor_canvas.height);
+			
+			
+			
+			requestAnimationFrame(mainLoop);
+		}
+		
+		if ( (typeof (editor_canvas.getContext) !== undefined)) {
+				cx = editor_canvas.getContext('2d');
+				
+			
+				mainLoop();
+		}
+		
+	</script>
+	
+	
+	</body>
+</html>
